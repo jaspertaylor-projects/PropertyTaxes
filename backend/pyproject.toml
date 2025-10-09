@@ -12,6 +12,7 @@ dependencies = [
     "uvicorn[standard]",
     "numpy",
     "requests",
+    "pandas",
 ]
 
 [tool.uv]

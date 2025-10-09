@@ -1,139 +1,207 @@
 // frontend/src/App.jsx
-// Purpose: Display backend API data with a manual refresh, using a relative API path so Vite's proxy routes requests to the backend.
+// Purpose: Provides a UI to select and inspect the first 10 rows of property tax dataframes loaded on the backend.
 // Imports From: ./App.css, ./theme.js
-// Exported To: None
+// Exported To: ./main.jsx
 import React, { useState, useEffect } from 'react';
-import './App.css'; // For global styles
+import './App.css';
 import theme from './theme.js';
 
-export default function App() {
-  const [apiData, setApiData] = useState({ message: 'Loading...', timestamp: '' });
-  const [error, setError] = useState('');
+function DataframeTable({ data }) {
+  if (!data || data.length === 0) {
+    return <p>No data to display. Select a dataframe to view its first 10 rows.</p>;
+  }
 
-  const fetchApiData = () => {
-    setError('');
-    // Use a relative path so the Vite dev server proxy forwards to the backend
-    fetch('/api/hello')
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch from API');
-        return res.json();
-      })
-      .then((data) => setApiData(data))
-      .catch((err) => setError(`Error: ${err.message}. Is the backend running?`));
+  const headers = Object.keys(data[0]);
+
+  const styles = {
+    tableContainer: {
+      overflowX: 'auto',
+      maxWidth: '100%',
+      marginTop: '1.5rem',
+      border: `1px solid ${theme.border}`,
+      borderRadius: '8px',
+    },
+    table: {
+      width: '100%',
+      borderCollapse: 'collapse',
+      backgroundColor: theme.cardBackground,
+    },
+    th: {
+      backgroundColor: theme.secondary,
+      color: theme.primary,
+      padding: '12px 15px',
+      textAlign: 'left',
+      borderBottom: `2px solid ${theme.border}`,
+    },
+    td: {
+      padding: '12px 15px',
+      borderBottom: `1px solid ${theme.border}`,
+      color: theme.textSecondary,
+    },
+    tr: {
+      '&:last-child td': {
+        borderBottom: 'none',
+      },
+    },
   };
 
+  return (
+    <div className="dataframe-table-container" style={styles.tableContainer}>
+      <table className="dataframe-table" style={styles.table}>
+        <thead>
+          <tr>
+            {headers.map((header) => (
+              <th key={header} style={styles.th}>{header}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((row, rowIndex) => (
+            <tr key={rowIndex} style={styles.tr}>
+              {headers.map((header) => (
+                <td key={`${rowIndex}-${header}`} style={styles.td}>
+                  {row[header] === null ? 'NULL' : String(row[header])}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+export default function App() {
+  const [dataframes, setDataframes] = useState([]);
+  const [selectedDataframe, setSelectedDataframe] = useState('');
+  const [dataframeData, setDataframeData] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+
   useEffect(() => {
-    fetchApiData();
+    fetch('/api/dataframes')
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to fetch dataframe list');
+        return res.json();
+      })
+      .then((data) => {
+        setDataframes(data);
+      })
+      .catch((err) => setError(`Error: ${err.message}. Is the backend running?`));
   }, []);
 
-  // CSS-in-JS styles derived from the theme file
+  const handleDataframeSelect = (e) => {
+    const name = e.target.value;
+    setSelectedDataframe(name);
+
+    if (!name) {
+      setDataframeData(null);
+      setError('');
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+    setDataframeData(null);
+
+    fetch(`/api/dataframes/${name}`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`Failed to fetch data for ${name}`);
+        return res.json();
+      })
+      .then((data) => {
+        setDataframeData(data);
+      })
+      .catch((err) => setError(`Error: ${err.message}`))
+      .finally(() => setIsLoading(false));
+  };
+
   const styles = {
     appContainer: {
       backgroundColor: theme.background,
       color: theme.textPrimary,
       minHeight: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
       padding: '2rem',
       boxSizing: 'border-box',
     },
-    appHeader: {
-      backgroundColor: theme.secondary,
-      padding: '2rem',
-      borderRadius: '12px',
+    header: {
       textAlign: 'center',
       marginBottom: '2rem',
-      width: '100%',
-      maxWidth: '600px',
     },
-    appTitle: {
+    title: {
       color: theme.primary,
+      margin: '0 0 0.5rem 0',
+    },
+    subtitle: {
+      color: theme.textSecondary,
       margin: 0,
     },
-    appSubtitle: {
-      color: theme.textSecondary,
-      margin: '0.5rem 0 0 0',
-    },
-    apiCard: {
+    contentCard: {
       backgroundColor: theme.cardBackground,
       borderRadius: '12px',
       padding: '2rem',
       border: `1px solid ${theme.border}`,
       boxShadow: `0 4px 12px ${theme.shadow}`,
-      minWidth: '450px',
+      maxWidth: '1200px',
+      margin: '0 auto',
+    },
+    selectorLabel: {
+      display: 'block',
+      marginBottom: '0.5rem',
+      fontWeight: 'bold',
+    },
+    selector: {
       width: '100%',
-      maxWidth: '600px',
-      textAlign: 'center',
-    },
-    apiCardTitle: {
-      margin: '0 0 1rem 0',
+      padding: '10px',
+      borderRadius: '8px',
+      border: `1px solid ${theme.border}`,
+      backgroundColor: theme.background,
       color: theme.textPrimary,
+      fontSize: '1em',
     },
-    apiCardErrorMessage: {
+    errorMessage: {
       color: theme.error,
       fontFamily: 'monospace',
-      margin: '1rem 0',
+      marginTop: '1rem',
     },
-    apiCardMessage: {
-      fontFamily: 'monospace',
-      fontSize: '1.25rem',
-      color: theme.textSuccess,
-      margin: '1rem 0',
-    },
-    apiCardTimestamp: {
-      fontSize: '0.9rem',
+    loadingMessage: {
       color: theme.textMuted,
-    },
-    apiCardRefreshButton: {
-      backgroundColor: theme.buttonBackground,
-      color: theme.buttonText,
-      border: 'none',
-      padding: '10px 20px',
-      borderRadius: '8px',
-      cursor: 'pointer',
-      fontWeight: 'bold',
-      marginTop: '1.5rem',
-      fontSize: '1em',
+      marginTop: '1rem',
     },
   };
 
   return (
     <div className="app-container" style={styles.appContainer}>
-      <header className="app-header" style={styles.appHeader}>
-        <h1 className="app-title" style={styles.appTitle}>
-          Full-Stack Docker App
-        </h1>
-        <p className="app-subtitle" style={styles.appSubtitle}>
-          FastAPI + React with Hot-Reloading Test
+      <header style={styles.header}>
+        <h1 style={styles.title}>Property Tax Data Inspector</h1>
+        <p style={styles.subtitle}>
+          Select a dataset to view the first 10 records.
         </p>
       </header>
-      <main className="api-card" style={styles.apiCard}>
-        <h2 className="api-card__title" style={styles.apiCardTitle}>
-          Message from Backend
-        </h2>
-        {error ? (
-          <p className="api-card__error-message" style={styles.apiCardErrorMessage}>
-            {error}
-          </p>
-        ) : (
-          <>
-            <p className="api-card__message" style={styles.apiCardMessage}>
-              "{apiData.message}"
-            </p>
-            <p className="api-card__timestamp" style={styles.apiCardTimestamp}>
-              Timestamp: {apiData.timestamp}
-            </p>
-          </>
-        )}
-        <button
-          className="api-card__refresh-button"
-          style={styles.apiCardRefreshButton}
-          onClick={fetchApiData}
-        >
-          Refresh Data
-        </button>
+      <main className="content-card" style={styles.contentCard}>
+        <div>
+          <label htmlFor="df-selector" style={styles.selectorLabel}>
+            Select Dataframe:
+          </label>
+          <select
+            id="df-selector"
+            value={selectedDataframe}
+            onChange={handleDataframeSelect}
+            style={styles.selector}
+          >
+            <option value="">-- Choose a dataset --</option>
+            {dataframes.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {error && <p style={styles.errorMessage}>{error}</p>}
+        {isLoading && <p style={styles.loadingMessage}>Loading data...</p>}
+        
+        <DataframeTable data={dataframeData} />
       </main>
     </div>
   );

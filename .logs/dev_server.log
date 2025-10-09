@@ -1,0 +1,135 @@
+time="2025-10-09T11:16:19-10:00" level=warning msg="The \"MODS\" variable is not set. Defaulting to a blank string."
+time="2025-10-09T11:16:19-10:00" level=warning msg="The \"MODS\" variable is not set. Defaulting to a blank string."
+time="2025-10-09T11:16:19-10:00" level=warning msg="The \"MODS\" variable is not set. Defaulting to a blank string."
+time="2025-10-09T11:16:19-10:00" level=warning msg="The \"NEED_REINSTALL\" variable is not set. Defaulting to a blank string."
+ Network propertytaxes_default  Creating
+ Network propertytaxes_default  Created
+ Volume "propertytaxes_frontend_node_modules"  Creating
+ Volume "propertytaxes_frontend_node_modules"  Created
+ Container propertytaxes-venv-perms-1  Creating
+ Container propertytaxes-log-perms-1  Creating
+ Container propertytaxes-log-perms-1  Created
+ Container propertytaxes-venv-perms-1  Created
+ Container propertytaxes-backend-1  Creating
+ Container propertytaxes-backend-1  Created
+ Container propertytaxes-frontend-1  Creating
+ Container propertytaxes-frontend-1  Created
+Attaching to backend-1, frontend-1, log-perms-1, venv-perms-1
+venv-perms-1  | venv-perms: fixed ownership of /venv
+log-perms-1   | log-perms: fixed ownership to UID=1000 GID=1000
+[Kvenv-perms-1 exited with code 0
+[Klog-perms-1 exited with code 0
+frontend-1    | sh: out of range
+backend-1     | Downloading numpy (15.9MiB)
+backend-1     | Downloading uvloop (4.5MiB)
+backend-1     | Downloading pydantic-core (1.9MiB)
+frontend-1    | Progress: resolved 0, reused 0, downloaded 1, added 0
+backend-1     |  Downloading pydantic-core
+backend-1     |  Downloading uvloop
+backend-1     |  Downloading numpy
+backend-1     | Prepared 24 packages in 1.24s
+backend-1     | warning: Failed to hardlink files; falling back to full copy. This may lead to degraded performance.
+backend-1     |          If the cache and target directories are on different filesystems, hardlinking may not be supported.
+backend-1     |          If this is intentional, set `export UV_LINK_MODE=copy` or use `--link-mode=copy` to suppress this warning.
+backend-1     | Installed 24 packages in 62ms
+backend-1     |  + annotated-types==0.7.0
+backend-1     |  + anyio==4.10.0
+backend-1     |  + certifi==2025.8.3
+backend-1     |  + charset-normalizer==3.4.3
+backend-1     |  + click==8.2.1
+backend-1     |  + fastapi==0.116.1
+backend-1     |  + h11==0.16.0
+backend-1     |  + httptools==0.6.4
+backend-1     |  + idna==3.10
+backend-1     |  + numpy==2.3.3
+backend-1     |  + pydantic==2.11.8
+backend-1     |  + pydantic-core==2.33.2
+backend-1     |  + python-dotenv==1.1.1
+backend-1     |  + pyyaml==6.0.2
+backend-1     |  + requests==2.32.5
+backend-1     |  + sniffio==1.3.1
+backend-1     |  + starlette==0.47.3
+backend-1     |  + typing-extensions==4.15.0
+backend-1     |  + typing-inspection==0.4.1
+backend-1     |  + urllib3==2.5.0
+backend-1     |  + uvicorn==0.35.0
+backend-1     |  + uvloop==0.21.0
+backend-1     |  + watchfiles==1.1.0
+backend-1     |  + websockets==15.0.1
+frontend-1    | Progress: resolved 44, reused 0, downloaded 42, added 0
+frontend-1    | Progress: resolved 103, reused 0, downloaded 61, added 0
+frontend-1    | Packages: +1
+frontend-1    | +
+frontend-1    | Progress: resolved 105, reused 0, downloaded 63, added 1, done
+frontend-1    | 
+frontend-1    | dependencies:
+frontend-1    | + lucide-react 0.545.0
+frontend-1    | 
+frontend-1    | ╭ Warning ─────────────────────────────────────────────────────────────────────╮
+frontend-1    | │                                                                              │
+frontend-1    | │   Ignored build scripts: esbuild.                                            │
+frontend-1    | │   Run "pnpm approve-builds" to pick which dependencies should be allowed     │
+frontend-1    | │   to run scripts.                                                            │
+frontend-1    | │                                                                              │
+frontend-1    | ╰──────────────────────────────────────────────────────────────────────────────╯
+frontend-1    | 
+frontend-1    | Done in 3.1s using pnpm v10.18.1
+frontend-1    | ! Corepack is about to download https://registry.npmjs.org/pnpm/-/pnpm-10.18.1.tgz
+frontend-1    | 
+frontend-1    | > frontend@0.0.0 dev /app
+frontend-1    | > vite --host
+frontend-1    | 
+frontend-1    | 
+frontend-1    |   VITE v5.4.20  ready in 140 ms
+frontend-1    | 
+frontend-1    |   ➜  Local:   http://localhost:5173/
+frontend-1    |   ➜  Network: http://172.18.0.3:5173/
+frontend-1    | 9:55:22 PM [vite] hmr update /src/App.jsx
+backend-1     | Process SpawnProcess-2:
+backend-1     | Traceback (most recent call last):
+backend-1     |   File "/tmp/.local/share/uv/python/cpython-3.13.7-linux-x86_64-gnu/lib/python3.13/multiprocessing/process.py", line 313, in _bootstrap
+backend-1     |     self.run()
+backend-1     |     ~~~~~~~~^^
+backend-1     |   File "/tmp/.local/share/uv/python/cpython-3.13.7-linux-x86_64-gnu/lib/python3.13/multiprocessing/process.py", line 108, in run
+backend-1     |     self._target(*self._args, **self._kwargs)
+backend-1     |     ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend-1     |   File "/app/.venv/lib/python3.13/site-packages/uvicorn/_subprocess.py", line 80, in subprocess_started
+backend-1     |     target(sockets=sockets)
+backend-1     |     ~~~~~~^^^^^^^^^^^^^^^^^
+backend-1     |   File "/app/.venv/lib/python3.13/site-packages/uvicorn/server.py", line 67, in run
+backend-1     |     return asyncio.run(self.serve(sockets=sockets))
+backend-1     |            ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend-1     |   File "/tmp/.local/share/uv/python/cpython-3.13.7-linux-x86_64-gnu/lib/python3.13/asyncio/runners.py", line 195, in run
+backend-1     |     return runner.run(main)
+backend-1     |            ~~~~~~~~~~^^^^^^
+backend-1     |   File "/tmp/.local/share/uv/python/cpython-3.13.7-linux-x86_64-gnu/lib/python3.13/asyncio/runners.py", line 118, in run
+backend-1     |     return self._loop.run_until_complete(task)
+backend-1     |            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+backend-1     |   File "uvloop/loop.pyx", line 1518, in uvloop.loop.Loop.run_until_complete
+backend-1     |   File "/app/.venv/lib/python3.13/site-packages/uvicorn/server.py", line 71, in serve
+backend-1     |     await self._serve(sockets)
+backend-1     |   File "/app/.venv/lib/python3.13/site-packages/uvicorn/server.py", line 78, in _serve
+backend-1     |     config.load()
+backend-1     |     ~~~~~~~~~~~^^
+backend-1     |   File "/app/.venv/lib/python3.13/site-packages/uvicorn/config.py", line 436, in load
+backend-1     |     self.loaded_app = import_from_string(self.app)
+backend-1     |                       ~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+backend-1     |   File "/app/.venv/lib/python3.13/site-packages/uvicorn/importer.py", line 22, in import_from_string
+backend-1     |     raise exc from None
+backend-1     |   File "/app/.venv/lib/python3.13/site-packages/uvicorn/importer.py", line 19, in import_from_string
+backend-1     |     module = importlib.import_module(module_str)
+backend-1     |   File "/tmp/.local/share/uv/python/cpython-3.13.7-linux-x86_64-gnu/lib/python3.13/importlib/__init__.py", line 88, in import_module
+backend-1     |     return _bootstrap._gcd_import(name[level:], package, level)
+backend-1     |            ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend-1     |   File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+backend-1     |   File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+backend-1     |   File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+backend-1     |   File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+backend-1     |   File "<frozen importlib._bootstrap_external>", line 1026, in exec_module
+backend-1     |   File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+backend-1     |   File "/app/app/bootstrap.py", line 44, in <module>
+backend-1     |     from app.main import app as asgi  # type: ignore[attr-defined]
+backend-1     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend-1     |   File "/app/app/main.py", line 17, in <module>
+backend-1     |     import pandas as pd
+backend-1     | ModuleNotFoundError: No module named 'pandas'

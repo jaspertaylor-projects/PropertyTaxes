@@ -1,12 +1,14 @@
 # backend/Dockerfile
-# Purpose: Containerize the FastAPI backend with a production-stable default CMD (no --reload); dev overrides this in docker-compose.yml.
+# Purpose: Containerize the FastAPI backend with production defaults and harden baked-in app data as read-only.
 # Imports From: pyproject.toml, uv.lock, ./app/*, ./uvicorn-log.json
-# Exported To: docker-compose services "backend" (dev and prod).
+# Exported To: docker-compose services "backend" and any container platform (e.g., DigitalOcean).
 
 FROM python:3.11-slim AS base
 
+# Runtime defaults
 ENV PYTHONUNBUFFERED=1 \
-    LOG_DIR=/logs
+    LOG_DIR=/logs \
+    DATA_DIR=/app/app/data
 
 # uv manages virtualenv + sync; install once at image build time
 RUN pip install --no-cache-dir uv
@@ -32,6 +34,10 @@ RUN uv venv && uv sync --frozen
 # Bring in application code and logging config
 COPY --chown=app:app ./app ./app
 COPY --chown=app:app uvicorn-log.json ./uvicorn-log.json
+
+# Harden baked-in data files as read-only inside the image (defense in depth)
+# If DATA_DIR doesn't exist, don't fail the build.
+RUN sh -lc 'if [ -d "$DATA_DIR" ]; then chmod -R a-w "$DATA_DIR"; fi'
 
 EXPOSE 8000
 

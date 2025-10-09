@@ -1,10 +1,11 @@
 # backend/app/main.py
-# Purpose: Define the FastAPI app and configure robust logging. Register a proper ASGI middleware for exception logging using add_middleware so all errors are captured in /logs.
+# Purpose: Define the FastAPI app, load data on startup, and provide API endpoints for data inspection.
 # Imports From: None
 # Exported To: ./bootstrap.py
 from __future__ import annotations
 
 import datetime
+import json
 import logging
 import logging.config
 import os
@@ -13,8 +14,9 @@ import traceback
 from typing import Any
 
 import numpy as np
+import pandas as pd
 import requests
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -22,6 +24,102 @@ from pydantic import BaseModel
 LOG_DIR = os.getenv("LOG_DIR", "/logs")
 BACKEND_ERROR_FILE = os.path.join(LOG_DIR, "backend-error.log")
 FRONTEND_ERROR_FILE = os.path.join(LOG_DIR, "frontend-error.log")
+DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
+
+
+# ---- Data Loading ------------------------------------------------------------
+DATASETS: dict[str, pd.DataFrame] = {}
+
+DATA_DEFINITIONS = {
+    "fullasmt25": {
+        "file_name": "fullasmt25.txt",
+        "colspecs": [
+            (0, 1), (1, 2), (2, 3), (3, 6), (6, 9), (9, 13), (13, 18), (18, 22),
+            (22, 26), (26, 39), (39, 52), (52, 65), (65, 78),
+        ],
+        "names": [
+            "DIVISION_TMK", "ZONE_TMK", "SECTION_TMK", "PLAT_TMK", "PARCEL_TMK",
+            "CPR_TMK", "PARCEL_YEAR", "LAND_CLASS", "TAX_RATE_CLASS",
+            "ASSESSED_LAND_VALUE", "LAND_EXEMPTION", "ASSESSED_BUILDING_VALUE",
+            "BUILDING_EXEMPTION",
+        ],
+    },
+    "fulllegal25": {
+        "file_name": "fulllegal25.txt",
+        "colspecs": [
+            (0, 1), (1, 2), (2, 3), (3, 6), (6, 9), (9, 13), (13, 18), (18, 32),
+            (32, 43), (43, 223),
+        ],
+        "names": [
+            "DIVISION_TMK", "ZONE_TMK", "SECTION_TMK", "PLAT_TMK", "PARCEL_TMK",
+            "CPR_TMK", "TAX_YEAR", "ACRES", "SQFT", "LEGAL_DESCRIPTION",
+        ],
+    },
+    "fulllndarclass25": {
+        "file_name": "fulllndarclass25.txt",
+        "colspecs": [
+            (0, 1), (1, 2), (2, 3), (3, 6), (6, 9), (9, 13), (13, 17), (17, 18),
+            (18, 23), (23, 35), (35, 40),
+        ],
+        "names": [
+            "DIVISION_TMK", "ZONE_TMK", "SECTION_TMK", "PLAT_TMK", "PARCEL_TMK",
+            "CPR_TMK", "LAND_CLASS", "MULTIPLE_CLASS_FLAG", "PARCEL_YEAR",
+            "LAND_AREA_PER_CLASS", "LAND_LINE",
+        ],
+    },
+    "fullownr25": {
+        "file_name": "fullownr25.txt",
+        "colspecs": [
+            (0, 1), (1, 2), (2, 3), (3, 6), (6, 9), (9, 13), (13, 53), (53, 93),
+            (93, 214), (214, 294), (294, 386), (386, 426), (426, 428),
+            (428, 433), (433, 437), (437, 467),
+        ],
+        "names": [
+            "DIVISION_TMK", "ZONE_TMK", "SECTION_TMK", "PLAT_TMK", "PARCEL_TMK",
+            "CPR_TMK", "OWNER", "OWNER_TYPE", "CO_MAILING_ADDRESS",
+            "MAILING_STREET_ADDRESS", "MAILING_CITY_STATE_ZIP",
+            "MAILING_CITY_NAME", "MAILING_STATE", "MAILING_ZIP1", "MAILING_ZIP2",
+            "COUNTRY",
+        ],
+    },
+    "fullpardat25": {
+        "file_name": "fullpardat25.txt",
+        "colspecs": [
+            (0, 1), (1, 2), (2, 3), (3, 6), (6, 9), (9, 13), (13, 18), (18, 19),
+            (19, 21), (21, 31), (31, 37), (37, 39), (39, 69), (69, 77),
+            (77, 87), (87, 98), (98, 115), (115, 123),
+        ],
+        "names": [
+            "DIVISION_TMK", "ZONE_TMK", "SECTION_TMK", "PLAT_TMK", "PARCEL_TMK",
+            "CPR_TMK", "PARCEL_YEAR", "MULTIPLE_CLASS_FLAG", "STREET_NUMBER_PRE",
+            "STREET_NUMBER", "ADDITIONAL_STREET_NUMBER", "STREET_DIRECTION",
+            "STREET", "STREET_NAME_SUFFIX", "UNIT_DESCRIPTION", "UNIT",
+            "PARCEL_ACRES", "NEIGHBORHOOD_CODE",
+        ],
+    },
+}
+
+def load_data_on_startup():
+    """Load fixed-width text files into pandas DataFrames."""
+    logger = logging.getLogger(__name__)
+    logger.info("Starting data loading process...")
+    for name, definition in DATA_DEFINITIONS.items():
+        file_path = os.path.join(DATA_DIR, definition["file_name"])
+        try:
+            df = pd.read_fwf(
+                file_path,
+                colspecs=definition["colspecs"],
+                names=definition["names"],
+                encoding="latin1",
+                header=None,
+            )
+            DATASETS[name] = df
+            logger.info("Successfully loaded %s", file_path)
+        except FileNotFoundError:
+            logger.error("Data file not found: %s", file_path)
+        except Exception as e:
+            logger.error("Failed to load data from %s: %s", file_path, e)
+    logger.info("Data loading complete.")
 
 
 # ---- Logging Setup ------------------------------------------------------------
@@ -129,6 +227,9 @@ configure_logging()
 # ---- FastAPI App --------------------------------------------------------------
 app = FastAPI()
 
+@app.on_event("startup")
+async def startup_event():
+    load_data_on_startup()
 
 # ---- Exception Logging Middleware (ASGI) --------------------------------------
 class ExceptionLoggingMiddleware:
@@ -175,6 +276,24 @@ app.add_middleware(
 
 
 # ---- Endpoints ----------------------------------------------------------------
+@app.get("/api/dataframes")
+def list_dataframes() -> list[str]:
+    """Returns a list of available dataframe names."""
+    return list(DATASETS.keys())
+
+
+@app.get("/api/dataframes/{name}")
+def get_dataframe_head(name: str) -> Any:
+    """Returns the first 10 rows of a specified dataframe."""
+    if name not in DATASETS:
+        raise HTTPException(status_code=404, detail="Dataframe not found")
+    df = DATASETS[name]
+    # Convert to JSON, handling potential NaN values which are not valid JSON
+    df_head = df.head(10).replace({np.nan: None})
+    result_json = df_head.to_json(orient="records")
+    return json.loads(result_json)
+
+
 @app.get("/api/hello")
 def read_root() -> dict[str, Any]:
     return {
