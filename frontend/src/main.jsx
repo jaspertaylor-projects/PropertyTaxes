@@ -1,9 +1,10 @@
 // frontend/src/main.jsx
-// Purpose: Bootstrap the React app, install client error reporting, and wrap App in an ErrorBoundary.
+// Purpose: Bootstrap the React app, install client error reporting, and wrap App in an ErrorBoundary and Router.
 // Imports From: ./App.jsx, ./errors/ErrorBoundary.jsx, ./errors/clientErrorReporter.js, ./theme.js
 // Exported To: None
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
 import App from './App.jsx';
 import ErrorBoundary from './errors/ErrorBoundary.jsx';
 import installClientErrorReporter from './errors/clientErrorReporter.js';
@@ -19,8 +20,10 @@ installClientErrorReporter();
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
+    <BrowserRouter>
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
+    </BrowserRouter>
   </React.StrictMode>
 );
