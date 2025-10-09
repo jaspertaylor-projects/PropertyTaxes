@@ -22,14 +22,14 @@ export default function PolicyEditor() {
   const isLoading = status === 'loading';
 
   useEffect(() => {
-    if (!policy) {
+    // Fetch initial data only if the status is 'idle' (or not yet loaded)
+    // to prevent re-fetching in a loop. The original implementation could cause
+    // an infinite dispatch loop due to an unstable object dependency (`appeals`).
+    if (status === 'idle' || !status) {
       dispatch(fetchDefaultPolicy());
-    }
-    // Ensure appeals are loaded if not already present
-    if (Object.keys(appeals).length === 0) {
       dispatch(fetchDefaultAppeals());
     }
-  }, [dispatch, policy, appeals]);
+  }, [dispatch, status]);
 
   const handlePolicyChange = (className, newPolicy) => {
     dispatch(updatePolicy({ className, policy: newPolicy }));
