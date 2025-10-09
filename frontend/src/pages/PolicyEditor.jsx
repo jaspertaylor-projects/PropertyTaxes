@@ -17,19 +17,21 @@ import {
 
 export default function PolicyEditor() {
   const dispatch = useDispatch();
-  const { policy, appeals, results, status, error } = useSelector((state) => state.forecast);
+  const { policy, appeals, results, status, error } = useSelector((state) => state.forecast) || {};
   const [comparisonYear, setComparisonYear] = useState('None');
   const isLoading = status === 'loading';
 
   useEffect(() => {
-    // Fetch initial data only if the status is 'idle' (or not yet loaded)
-    // to prevent re-fetching in a loop. The original implementation could cause
-    // an infinite dispatch loop due to an unstable object dependency (`appeals`).
-    if (status === 'idle' || !status) {
+    if (!policy) {
       dispatch(fetchDefaultPolicy());
+    }
+    // Ensure appeals are loaded if not already present.
+    // The original check `Object.keys(appeals).length === 0` is unsafe if `appeals` can be null.
+    // This safely checks for null/undefined or an empty object.
+    if (!appeals || Object.keys(appeals).length === 0) {
       dispatch(fetchDefaultAppeals());
     }
-  }, [dispatch, status]);
+  }, [dispatch, policy, appeals]);
 
   const handlePolicyChange = (className, newPolicy) => {
     dispatch(updatePolicy({ className, policy: newPolicy }));
