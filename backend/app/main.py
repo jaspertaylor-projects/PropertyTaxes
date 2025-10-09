@@ -428,8 +428,16 @@ def calculate_revenue_forecast(policy: dict[str, TaxClassPolicy]) -> Any:
 
         df = DATASETS["fullasmt25"].copy()
 
-        # Data prep
+        # Exclude disaster-affected parcels (Land Value = 0 AND Building Value = 0)
+        df = df[(df["ASSESSED_LAND_VALUE"] > 0) | (df["ASSESSED_BUILDING_VALUE"] > 0)]
+
+        # Data prep: Calculate net taxable value
         df["total_assessed_value"] = df["ASSESSED_LAND_VALUE"] + df["ASSESSED_BUILDING_VALUE"]
+        df["total_exemption"] = df["LAND_EXEMPTION"] + df["BUILDING_EXEMPTION"]
+        df["net_taxable_value"] = df["total_assessed_value"] - df["total_exemption"]
+        # Ensure net taxable value is not negative
+        df["net_taxable_value"] = df["net_taxable_value"].clip(lower=0)
+        
         df["tax"] = 0.0
 
         for class_name, class_policy in policy.items():
@@ -439,7 +447,8 @@ def calculate_revenue_forecast(policy: dict[str, TaxClassPolicy]) -> Any:
             if not mask.any():
                 continue
 
-            values = df.loc[mask, "total_assessed_value"]
+            # Use net_taxable_value for calculation
+            values = df.loc[mask, "net_taxable_value"]
 
             if class_policy.tiers:
                 # Tiered calculation
@@ -472,7 +481,7 @@ def calculate_revenue_forecast(policy: dict[str, TaxClassPolicy]) -> Any:
                 continue
 
             results[class_name] = {
-                "certified_value": group_df["total_assessed_value"].sum(),
+                "certified_value": group_df["net_taxable_value"].sum(),
                 "certified_revenue": group_df["tax"].sum(),
                 "parcel_count": len(group_df),
             }
@@ -544,3 +553,4 @@ def log_frontend_error(
         payload.stack,
     )
     return {"status": "ok"}
+
