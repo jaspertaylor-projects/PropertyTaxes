@@ -29,6 +29,7 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 
 # ---- Data Loading ------------------------------------------------------------
 DATASETS: dict[str, pd.DataFrame] = {}
+APPEALS_DATA: dict[str, float] = {}
 
 DATA_DEFINITIONS = {
     "fullasmt25": {
@@ -100,9 +101,12 @@ DATA_DEFINITIONS = {
 }
 
 def load_data_on_startup():
-    """Load fixed-width text files into pandas DataFrames."""
+    """Load fixed-width text files and CSVs into pandas DataFrames."""
+    global APPEALS_DATA
     logger = logging.getLogger(__name__)
     logger.info("Starting data loading process...")
+
+    # Load fixed-width files
     for name, definition in DATA_DEFINITIONS.items():
         file_path = os.path.join(DATA_DIR, definition["file_name"])
         try:
@@ -119,6 +123,22 @@ def load_data_on_startup():
             logger.error("Data file not found: %s", file_path)
         except Exception as e:
             logger.error("Failed to load data from %s: %s", file_path, e)
+
+    # Load appeals CSV
+    try:
+        appeals_path = os.path.join(DATA_DIR, "Appeals.csv")
+        appeals_df = pd.read_csv(appeals_path)
+        appeals_df["APPEAL VALUE"] = (
+            appeals_df["APPEAL VALUE"].replace({',': ''}, regex=True).astype(float)
+        )
+        # Create a mapping from class name to appeal value
+        APPEALS_DATA = appeals_df.set_index("TAX CLASS")["APPEAL VALUE"].to_dict()
+        logger.info("Successfully loaded %s", appeals_path)
+    except FileNotFoundError:
+        logger.error("Data file not found: %s", appeals_path)
+    except Exception as e:
+        logger.error("Failed to load data from %s: %s", appeals_path, e)
+
     logger.info("Data loading complete.")
 
 
@@ -366,6 +386,10 @@ class TaxClassPolicy(BaseModel):
     rate: Optional[float]
     tiers: List[Tier]
 
+class ForecastRequest(BaseModel):
+    policy: dict[str, TaxClassPolicy]
+    appeals: dict[str, float]
+
 class RevenueResult(BaseModel):
     certified_value: float
     certified_revenue: float
@@ -453,8 +477,16 @@ def get_default_policy() -> dict[str, Any]:
     return DEFAULT_POLICY
 
 
+@app.get("/api/appeals/default")
+def get_default_appeals() -> dict[str, float]:
+    """Returns the default appeal values by tax class."""
+    if not APPEALS_DATA:
+        raise HTTPException(status_code=503, detail="Appeals data not loaded.")
+    return APPEALS_DATA
+
+
 @app.post("/api/revenue-forecast", response_model=ForecastResponse)
-def calculate_revenue_forecast(policy: dict[str, TaxClassPolicy]) -> Any:
+def calculate_revenue_forecast(request: ForecastRequest) -> Any:
     """Calculates a revenue forecast based on the provided tax policy."""
     try:
         if "fullasmt25" not in DATASETS:
@@ -474,7 +506,7 @@ def calculate_revenue_forecast(policy: dict[str, TaxClassPolicy]) -> Any:
         
         df["tax"] = 0.0
 
-        for class_name, class_policy in policy.items():
+        for class_name, class_policy in request.policy.items():
             class_code = class_policy.code
             mask = df["TAX_RATE_CLASS"] == class_code
 
@@ -519,7 +551,7 @@ def calculate_revenue_forecast(policy: dict[str, TaxClassPolicy]) -> Any:
 
         for class_code, group_df in grouped:
             class_name = TAX_CLASS_MAPPING.get(class_code)
-            if not class_name or class_name not in policy:
+            if not class_name or class_name not in request.policy:
                 continue
 
             results[class_name] = {
@@ -528,13 +560,36 @@ def calculate_revenue_forecast(policy: dict[str, TaxClassPolicy]) -> Any:
                 "parcel_count": len(group_df),
             }
 
-        # Calculate totals
-        total_value = sum(r["certified_value"] for r in results.values())
-        total_revenue = sum(r["certified_revenue"] for r in results.values())
-        total_parcels = sum(r["parcel_count"] for r in results.values())
+        # Apply appeal deductions
+        adjusted_results = {}
+        for class_name, result_data in results.items():
+            appeal_value = request.appeals.get(class_name, 0)
+            original_value = result_data["certified_value"]
+
+            if original_value > 0 and appeal_value > 0:
+                # Per troubleshooting guide, deduct 50% of appeal value
+                appeal_deduction = appeal_value * 0.5
+                appeal_deduction = min(appeal_deduction, original_value)
+
+                adjusted_value = original_value - appeal_deduction
+                reduction_factor = adjusted_value / original_value if original_value > 0 else 0
+                adjusted_revenue = result_data["certified_revenue"] * reduction_factor
+
+                adjusted_results[class_name] = {
+                    "certified_value": adjusted_value,
+                    "certified_revenue": adjusted_revenue,
+                    "parcel_count": result_data["parcel_count"],
+                }
+            else:
+                adjusted_results[class_name] = result_data
+
+        # Calculate totals from adjusted results
+        total_value = sum(r["certified_value"] for r in adjusted_results.values())
+        total_revenue = sum(r["certified_revenue"] for r in adjusted_results.values())
+        total_parcels = sum(r["parcel_count"] for r in adjusted_results.values())
 
         return {
-            "results_by_class": results,
+            "results_by_class": adjusted_results,
             "totals": {
                 "certified_value": total_value,
                 "certified_revenue": total_revenue,

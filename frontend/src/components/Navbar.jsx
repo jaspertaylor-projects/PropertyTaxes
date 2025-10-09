@@ -64,6 +64,11 @@ export default function Navbar() {
             Policy Editor
           </NavLink>
         </li>
+        <li>
+          <NavLink to="/appeals-editor" style={getNavLinkStyle}>
+            Appeals Editor
+          </NavLink>
+        </li>
       </ul>
     </nav>
   );

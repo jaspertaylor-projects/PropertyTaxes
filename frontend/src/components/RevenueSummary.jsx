@@ -5,7 +5,7 @@
 import React from 'react';
 import theme from '../theme.js';
 
-export default function RevenueSummary({ results, comparisonYear }) {
+export default function RevenueSummary({ results, comparisonYear, appeals }) {
   if (!results) {
     return null;
   }
@@ -51,7 +51,7 @@ export default function RevenueSummary({ results, comparisonYear }) {
       width: '100%',
       borderCollapse: 'collapse',
       fontSize: '0.9rem',
-      minWidth: '800px',
+      minWidth: '900px',
     },
     th: {
       backgroundColor: theme.secondary,
@@ -82,11 +82,15 @@ export default function RevenueSummary({ results, comparisonYear }) {
 
   const renderRow = (className, data, totalRow = false) => {
     const comparisonRow = comparison ? (totalRow ? comparison.totals : comparison[className]) : null;
+    const appealValue = totalRow ? 
+      Object.values(appeals || {}).reduce((sum, val) => sum + val, 0) :
+      (appeals && appeals[className]) || 0;
+
     return (
       <tr key={className}>
         <td style={{...styles.td, ...styles.tdLeft}}>{className}</td>
-        {!totalRow && <td style={styles.td}>{formatNumber(data.parcel_count)}</td>}
-        {totalRow && <td style={styles.td}>{formatNumber(data.parcel_count)}</td>}
+        <td style={styles.td}>{formatNumber(data.parcel_count)}</td>
+        <td style={styles.td}>{formatCurrency(appealValue)}</td>
         <td style={styles.td}>{formatCurrency(data.certified_value)}</td>
         {comparison && <td style={styles.td}>{comparisonRow ? formatCurrency(comparisonRow.certified_value) : 'N/A'}</td>}
         {comparison && <td style={styles.td}>{comparisonRow ? formatDifference(data.certified_value, comparisonRow.certified_value) : 'N/A'}</td>}
@@ -105,10 +109,11 @@ export default function RevenueSummary({ results, comparisonYear }) {
           <tr>
             <th style={{...styles.th, textAlign: 'left'}}>Tax Class</th>
             <th style={{...styles.th, textAlign: 'right'}}>Parcels</th>
-            <th style={{...styles.th, textAlign: 'right'}}>Forecast Value</th>
+            <th style={{...styles.th, textAlign: 'right'}}>Appeal Value</th>
+            <th style={{...styles.th, textAlign: 'right'}}>Forecast Value (Net)</th>
             {comparison && <th style={{...styles.th, textAlign: 'right'}}>{comparisonYear} Value</th>}
             {comparison && <th style={{...styles.th, textAlign: 'right'}}>Value Diff.</th>}
-            <th style={{...styles.th, textAlign: 'right'}}>Forecast Revenue</th>
+            <th style={{...styles.th, textAlign: 'right'}}>Forecast Revenue (Net)</th>
             {comparison && <th style={{...styles.th, textAlign: 'right'}}>{comparisonYear} Revenue</th>}
             {comparison && <th style={{...styles.th, textAlign: 'right'}}>Revenue Diff.</th>}
           </tr>

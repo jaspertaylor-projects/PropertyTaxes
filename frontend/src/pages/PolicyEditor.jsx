@@ -1,63 +1,44 @@
 // frontend/src/pages/PolicyEditor.jsx
 // Purpose: Provides a UI for users to edit property tax policy rates and tiers, and view revenue forecasts.
-// Imports From: ../theme.js, ../components/PolicyTiers.jsx, ../components/RevenueSummary.jsx, ../components/Spinner.jsx
+// Imports From: ../theme.js, ../components/PolicyTiers.jsx, ../components/RevenueSummary.jsx, ../components/Spinner.jsx, ../store/forecastSlice.js
 // Exported To: ../App.jsx
 import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import theme from '../theme.js';
 import PolicyTiers from '../components/PolicyTiers.jsx';
 import RevenueSummary from '../components/RevenueSummary.jsx';
 import Spinner from '../components/Spinner.jsx';
+import {
+  fetchDefaultPolicy,
+  updatePolicy,
+  calculateForecast,
+  fetchDefaultAppeals,
+} from '../store/forecastSlice.js';
 
 export default function PolicyEditor() {
-  const [policy, setPolicy] = useState(null);
-  const [results, setResults] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const dispatch = useDispatch();
+  const { policy, appeals, results, status, error } = useSelector((state) => state.forecast);
   const [comparisonYear, setComparisonYear] = useState('None');
+  const isLoading = status === 'loading';
 
   useEffect(() => {
-    setIsLoading(true);
-    fetch('/api/policy/default')
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch default policy');
-        return res.json();
-      })
-      .then((data) => {
-        setPolicy(data);
-        setError('');
-      })
-      .catch((err) => setError(`Error: ${err.message}. Is the backend running?`))
-      .finally(() => setIsLoading(false));
-  }, []);
+    if (!policy) {
+      dispatch(fetchDefaultPolicy());
+    }
+    // Ensure appeals are loaded if not already present
+    if (Object.keys(appeals).length === 0) {
+      dispatch(fetchDefaultAppeals());
+    }
+  }, [dispatch, policy, appeals]);
 
   const handlePolicyChange = (className, newPolicy) => {
-    setPolicy((prevPolicy) => ({
-      ...prevPolicy,
-      [className]: newPolicy,
-    }));
+    dispatch(updatePolicy({ className, policy: newPolicy }));
   };
 
   const handleCalculate = () => {
-    setIsLoading(true);
-    setError('');
-    setResults(null);
-
-    fetch('/api/revenue-forecast', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(policy),
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error('Calculation failed on the server.');
-        return res.json();
-      })
-      .then((data) => {
-        setResults(data);
-      })
-      .catch((err) => setError(`Error: ${err.message}`))
-      .finally(() => setIsLoading(false));
+    if (policy && appeals) {
+      dispatch(calculateForecast({ policy, appeals }));
+    }
   };
 
   const styles = {
@@ -190,7 +171,7 @@ export default function PolicyEditor() {
 
         {error && <p style={styles.errorMessage}>{error}</p>}
 
-        <RevenueSummary results={results} comparisonYear={comparisonYear} />
+        <RevenueSummary results={results} comparisonYear={comparisonYear} appeals={appeals} />
       </main>
     </div>
   );

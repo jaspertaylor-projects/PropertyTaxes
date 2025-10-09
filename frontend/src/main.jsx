@@ -1,29 +1,20 @@
 // frontend/src/main.jsx
-// Purpose: Bootstrap the React app, install client error reporting, and wrap App in an ErrorBoundary and Router.
-// Imports From: ./App.jsx, ./errors/ErrorBoundary.jsx, ./errors/clientErrorReporter.js, ./theme.js
+// Purpose: Entry point for the React application, sets up Redux store and routing.
+// Imports From: ./App.jsx, ./store/index.js
 // Exported To: None
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
+import { Provider } from 'react-redux';
+import { store } from './store/index.js';
 import App from './App.jsx';
-import ErrorBoundary from './errors/ErrorBoundary.jsx';
-import installClientErrorReporter from './errors/clientErrorReporter.js';
-import theme from './theme.js';
-
-// Apply theme colors as CSS variables to the root element
-// This makes theme colors available to the global stylesheet (App.css)
-Object.entries(theme).forEach(([key, value]) => {
-  document.documentElement.style.setProperty(`--color-${key}`, value);
-});
-
-installClientErrorReporter();
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <ErrorBoundary>
+    <Provider store={store}>
+      <BrowserRouter>
         <App />
-      </ErrorBoundary>
-    </BrowserRouter>
+      </BrowserRouter>
+    </Provider>
   </React.StrictMode>
 );
