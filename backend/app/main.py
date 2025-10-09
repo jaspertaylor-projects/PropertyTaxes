@@ -11,7 +11,7 @@ import logging.config
 import os
 import sys
 import traceback
-from typing import Any
+from typing import Any, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -223,6 +223,125 @@ def configure_logging() -> None:
 
 configure_logging()
 
+# ---- Tax Calculation Data and Models -----------------------------------------
+
+TAX_CLASS_MAPPING = {
+    0: "TIME SHARE",
+    1: "NON-OWNER-OCCUPIED",
+    2: "APARTMENT",
+    3: "COMMERCIAL",
+    4: "INDUSTRIAL",
+    5: "AGRICULTURAL",
+    6: "CONSERVATION",
+    7: "HOTEL / RESORT",
+    9: "OWNER-OCCUPIED",
+    10: "COMMERCIALIZED RESIDENTIAL",
+    11: "TVR-STRH",
+    12: "LONG TERM RENTAL",
+}
+
+# FY 2025 Rates from Final Budget Handout
+DEFAULT_POLICY = {
+    "TIME SHARE": {
+        "code": 0,
+        "rate": 14.60,
+        "tiers": []
+    },
+    "NON-OWNER-OCCUPIED": {
+        "code": 1,
+        "rate": None,
+        "tiers": [
+            {"up_to": 1000000, "rate": 5.87},
+            {"up_to": 3000000, "rate": 8.50},
+            {"up_to": None, "rate": 14.00},
+        ]
+    },
+    "COMMERCIALIZED RESIDENTIAL": {
+        "code": 10,
+        "rate": None,
+        "tiers": [
+            {"up_to": 1000000, "rate": 4.00},
+            {"up_to": 3000000, "rate": 5.00},
+            {"up_to": None, "rate": 8.00},
+        ]
+    },
+    "TVR-STRH": {
+        "code": 11,
+        "rate": None,
+        "tiers": [
+            {"up_to": 1000000, "rate": 12.50},
+            {"up_to": 3000000, "rate": 13.50},
+            {"up_to": None, "rate": 15.00},
+        ]
+    },
+    "LONG TERM RENTAL": {
+        "code": 12,
+        "rate": None,
+        "tiers": [
+            {"up_to": 1300000, "rate": 3.00},
+            {"up_to": 3000000, "rate": 5.00},
+            {"up_to": None, "rate": 8.00},
+        ]
+    },
+    "APARTMENT": {
+        "code": 2,
+        "rate": 3.50,
+        "tiers": []
+    },
+    "COMMERCIAL": {
+        "code": 3,
+        "rate": 6.05,
+        "tiers": []
+    },
+    "INDUSTRIAL": {
+        "code": 4,
+        "rate": 7.05,
+        "tiers": []
+    },
+    "AGRICULTURAL": {
+        "code": 5,
+        "rate": 5.74,
+        "tiers": []
+    },
+    "CONSERVATION": {
+        "code": 6,
+        "rate": 6.43,
+        "tiers": []
+    },
+    "HOTEL / RESORT": {
+        "code": 7,
+        "rate": 11.75,
+        "tiers": []
+    },
+    "OWNER-OCCUPIED": {
+        "code": 9,
+        "rate": None,
+        "tiers": [
+            {"up_to": 1300000, "rate": 1.80},
+            {"up_to": 4500000, "rate": 2.00},
+            {"up_to": None, "rate": 3.25},
+        ]
+    }
+}
+
+class Tier(BaseModel):
+    up_to: Optional[int]
+    rate: float
+
+class TaxClassPolicy(BaseModel):
+    code: int
+    rate: Optional[float]
+    tiers: List[Tier]
+
+class RevenueResult(BaseModel):
+    certified_value: float
+    certified_revenue: float
+    parcel_count: int
+
+class ForecastResponse(BaseModel):
+    results_by_class: dict[str, RevenueResult]
+    totals: RevenueResult
+
 
 # ---- FastAPI App --------------------------------------------------------------
 app = FastAPI()
@@ -292,6 +411,88 @@ def get_dataframe_head(name: str) -> Any:
     df_head = df.head(10).replace({np.nan: None})
     result_json = df_head.to_json(orient="records")
     return json.loads(result_json)
+
+
+@app.get("/api/policy/default")
+def get_default_policy() -> dict[str, Any]:
+    """Returns the default tax policy based on FY 2025 rates."""
+    return DEFAULT_POLICY
+
+
+@app.post("/api/revenue-forecast", response_model=ForecastResponse)
+def calculate_revenue_forecast(policy: dict[str, TaxClassPolicy]) -> Any:
+    """Calculates a revenue forecast based on the provided tax policy."""
+    try:
+        if "fullasmt25" not in DATASETS:
+            raise HTTPException(status_code=503, detail="Assessment data not loaded.")
+
+        df = DATASETS["fullasmt25"].copy()
+
+        # Data prep
+        df["total_assessed_value"] = df["ASSESSED_LAND_VALUE"] + df["ASSESSED_BUILDING_VALUE"]
+        df["tax"] = 0.0
+
+        for class_name, class_policy in policy.items():
+            class_code = class_policy.code
+            mask = df["TAX_RATE_CLASS"] == class_code
+
+            if not mask.any():
+                continue
+
+            values = df.loc[mask, "total_assessed_value"]
+
+            if class_policy.tiers:
+                # Tiered calculation
+                tier_tax = pd.Series(0.0, index=values.index)
+                lower_bound = 0
+                for tier in class_policy.tiers:
+                    rate = tier.rate / 1000.0
+                    upper_bound = tier.up_to if tier.up_to is not None else float('inf')
+
+                    # Value within this tier's range
+                    tier_value = np.minimum(np.maximum(0, values - lower_bound), upper_bound - lower_bound)
+                    tier_tax += tier_value * rate
+
+                    lower_bound = upper_bound
+                    if lower_bound == float('inf'):
+                        break
+                df.loc[mask, "tax"] = tier_tax
+            elif class_policy.rate is not None:
+                # Flat rate calculation
+                rate = class_policy.rate / 1000.0
+                df.loc[mask, "tax"] = values * rate
+
+        # Aggregate results
+        results = {}
+        grouped = df.groupby("TAX_RATE_CLASS")
+
+        for class_code, group_df in grouped:
+            class_name = TAX_CLASS_MAPPING.get(class_code)
+            if not class_name or class_name not in policy:
+                continue
+
+            results[class_name] = {
+                "certified_value": group_df["total_assessed_value"].sum(),
+                "certified_revenue": group_df["tax"].sum(),
+                "parcel_count": len(group_df),
+            }
+
+        # Calculate totals
+        total_value = sum(r["certified_value"] for r in results.values())
+        total_revenue = sum(r["certified_revenue"] for r in results.values())
+        total_parcels = sum(r["parcel_count"] for r in results.values())
+
+        return {
+            "results_by_class": results,
+            "totals": {
+                "certified_value": total_value,
+                "certified_revenue": total_revenue,
+                "parcel_count": total_parcels,
+            }
+        }
+    except Exception as e:
+        logging.getLogger("fastapi").error("Revenue calculation failed: %s", e)
+        raise HTTPException(status_code=500, detail="An error occurred during revenue calculation.")
 
 
 @app.get("/api/hello")
