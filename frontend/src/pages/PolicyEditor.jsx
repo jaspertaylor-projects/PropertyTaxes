@@ -13,6 +13,7 @@ export default function PolicyEditor() {
   const [results, setResults] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [comparisonYear, setComparisonYear] = useState('None');
 
   useEffect(() => {
     setIsLoading(true);
@@ -87,6 +88,13 @@ export default function PolicyEditor() {
       gap: '1rem',
       marginBottom: '2rem',
     },
+    controlsContainer: {
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: '1.5rem',
+      marginBottom: '1rem',
+    },
     buttonContainer: {
       display: 'flex',
       justifyContent: 'center',
@@ -109,6 +117,18 @@ export default function PolicyEditor() {
       fontFamily: 'monospace',
       marginTop: '1rem',
       textAlign: 'center',
+    },
+    selectLabel: {
+      color: theme.textSecondary,
+      fontWeight: 'bold',
+    },
+    select: {
+      padding: '8px 12px',
+      borderRadius: '6px',
+      border: `1px solid ${theme.border}`,
+      backgroundColor: theme.background,
+      color: theme.textPrimary,
+      fontSize: '0.9em',
     },
   };
 
@@ -133,18 +153,33 @@ export default function PolicyEditor() {
                 />
               ))}
             </div>
-            <div style={styles.buttonContainer}>
-              <button
-                style={{
-                  ...styles.calculateButton,
-                  ...(isLoading && { cursor: 'not-allowed', opacity: 0.6 }),
-                }}
-                onClick={handleCalculate}
-                disabled={isLoading}
-              >
-                {isLoading ? 'Calculating...' : 'Calculate Revenue'}
-              </button>
-              {isLoading && <Spinner />}
+            <div style={styles.controlsContainer}>
+              <div style={styles.buttonContainer}>
+                <button
+                  style={{
+                    ...styles.calculateButton,
+                    ...(isLoading && { cursor: 'not-allowed', opacity: 0.6 }),
+                  }}
+                  onClick={handleCalculate}
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Calculating...' : 'Calculate Revenue'}
+                </button>
+                {isLoading && <Spinner />}
+              </div>
+              <div>
+                <label htmlFor="comparison-year" style={styles.selectLabel}>Compare To: </label>
+                <select 
+                  id="comparison-year"
+                  style={styles.select}
+                  value={comparisonYear}
+                  onChange={(e) => setComparisonYear(e.target.value)}
+                >
+                  <option value="None">None</option>
+                  <option value="FY 2025">FY 2025</option>
+                  <option value="FY 2026">FY 2026</option>
+                </select>
+              </div>
             </div>
           </>
         ) : (
@@ -155,7 +190,7 @@ export default function PolicyEditor() {
 
         {error && <p style={styles.errorMessage}>{error}</p>}
 
-        <RevenueSummary results={results} />
+        <RevenueSummary results={results} comparisonYear={comparisonYear} />
       </main>
     </div>
   );

@@ -324,6 +324,39 @@ DEFAULT_POLICY = {
     }
 }
 
+FY_COMPARISON_DATA = {
+    "FY 2025": {
+        "TIME SHARE": {"certified_value": 3905410955, "certified_revenue": 57019000},
+        "NON-OWNER-OCCUPIED": {"certified_value": 17664372655, "certified_revenue": 141536630},
+        "COMMERCIALIZED RESIDENTIAL": {"certified_value": 286823300, "certified_revenue": 1392135},
+        "TVR-STRH": {"certified_value": 18696743965, "certified_revenue": 246287352},
+        "LONG TERM RENTAL": {"certified_value": 2261799755, "certified_revenue": 7782265},
+        "APARTMENT": {"certified_value": 595055010, "certified_revenue": 2082693},
+        "COMMERCIAL": {"certified_value": 2419886030, "certified_revenue": 14640310},
+        "INDUSTRIAL": {"certified_value": 2240512595, "certified_revenue": 15795614},
+        "AGRICULTURAL": {"certified_value": 1742186795, "certified_revenue": 10000152},
+        "CONSERVATION": {"certified_value": 317375505, "certified_revenue": 2040724},
+        "HOTEL / RESORT": {"certified_value": 4383911250, "certified_revenue": 51510957},
+        "OWNER-OCCUPIED": {"certified_value": 18754560210, "certified_revenue": 35274540},
+        "totals": {"certified_value": 73268638025, "certified_revenue": 585362373}
+    },
+    "FY 2026": {
+        "TIME SHARE": {"certified_value": 4202362000, "certified_revenue": 61774721},
+        "NON-OWNER-OCCUPIED": {"certified_value": 19709983430, "certified_revenue": 173968757},
+        "COMMERCIALIZED RESIDENTIAL": {"certified_value": 315851925, "certified_revenue": 1117435},
+        "TVR-STRH": {"certified_value": 19725277065, "certified_revenue": 264661563},
+        "LONG TERM RENTAL": {"certified_value": 3487698245, "certified_revenue": 11585508},
+        "APARTMENT": {"certified_value": 720171325, "certified_revenue": 2520600},
+        "COMMERCIAL": {"certified_value": 2722903800, "certified_revenue": 16473568},
+        "INDUSTRIAL": {"certified_value": 2425696900, "certified_revenue": 17101163},
+        "AGRICULTURAL": {"certified_value": 2025402205, "certified_revenue": 11625809},
+        "CONSERVATION": {"certified_value": 343329550, "certified_revenue": 2207609},
+        "HOTEL / RESORT": {"certified_value": 4631269245, "certified_revenue": 54648977},
+        "OWNER-OCCUPIED": {"certified_value": 23418112540, "certified_revenue": 41392002},
+        "totals": {"certified_value": 83728058230, "certified_revenue": 659077712}
+    }
+}
+
 class Tier(BaseModel):
     up_to: Optional[int]
     rate: float
@@ -341,6 +374,7 @@ class RevenueResult(BaseModel):
 class ForecastResponse(BaseModel):
     results_by_class: dict[str, RevenueResult]
     totals: RevenueResult
+    comparison_data: dict[str, Any]
 
 
 # ---- FastAPI App --------------------------------------------------------------
@@ -451,21 +485,29 @@ def calculate_revenue_forecast(policy: dict[str, TaxClassPolicy]) -> Any:
             values = df.loc[mask, "net_taxable_value"]
 
             if class_policy.tiers:
-                # Tiered calculation
-                tier_tax = pd.Series(0.0, index=values.index)
+                # Tiered marginal rate calculation
+                tax = pd.Series(0.0, index=values.index)
+                remaining_values = values.copy()
                 lower_bound = 0
+
                 for tier in class_policy.tiers:
                     rate = tier.rate / 1000.0
                     upper_bound = tier.up_to if tier.up_to is not None else float('inf')
+                    bracket_width = upper_bound - lower_bound
 
-                    # Value within this tier's range
-                    tier_value = np.minimum(np.maximum(0, values - lower_bound), upper_bound - lower_bound)
-                    tier_tax += tier_value * rate
+                    # Value to be taxed in this specific bracket
+                    value_in_bracket = remaining_values.clip(upper=bracket_width)
+                    tax += value_in_bracket * rate
+
+                    # Reduce remaining value for the next tier
+                    remaining_values = (remaining_values - bracket_width).clip(lower=0)
+                    
+                    if remaining_values.sum() == 0:
+                        break # Optimization
 
                     lower_bound = upper_bound
-                    if lower_bound == float('inf'):
-                        break
-                df.loc[mask, "tax"] = tier_tax
+                
+                df.loc[mask, "tax"] = tax
             elif class_policy.rate is not None:
                 # Flat rate calculation
                 rate = class_policy.rate / 1000.0
@@ -497,7 +539,8 @@ def calculate_revenue_forecast(policy: dict[str, TaxClassPolicy]) -> Any:
                 "certified_value": total_value,
                 "certified_revenue": total_revenue,
                 "parcel_count": total_parcels,
-            }
+            },
+            "comparison_data": FY_COMPARISON_DATA
         }
     except Exception as e:
         logging.getLogger("fastapi").error("Revenue calculation failed: %s", e)
@@ -553,4 +596,3 @@ def log_frontend_error(
         payload.stack,
     )
     return {"status": "ok"}
-
