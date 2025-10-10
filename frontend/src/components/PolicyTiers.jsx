@@ -1,11 +1,13 @@
 // frontend/src/components/PolicyTiers.jsx
-// Purpose: Renders an editable form for a single tax class policy.
+// Purpose: Renders an editable form for a single tax class policy, including rates and tier limits.
 // Imports From: ../theme.js
 // Exported To: ../pages/PolicyEditor.jsx
-import React from 'react';
+import React, { useState } from 'react';
 import theme from '../theme.js';
 
 export default function PolicyTiers({ className, policy, onPolicyChange }) {
+  const [isEditingTiers, setIsEditingTiers] = useState(false);
+
   const handleRateChange = (e) => {
     onPolicyChange(className, { ...policy, rate: parseFloat(e.target.value) || 0 });
   };
@@ -30,10 +32,26 @@ export default function PolicyTiers({ className, policy, onPolicyChange }) {
       padding: '1rem',
       marginBottom: '1rem',
     },
+    headerContainer: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: '1rem',
+    },
     header: {
       fontWeight: 'bold',
       color: theme.textPrimary,
-      marginBottom: '1rem',
+      margin: 0,
+    },
+    editButton: {
+      padding: '4px 8px',
+      fontSize: '0.8em',
+      backgroundColor: theme.background,
+      color: theme.primary,
+      border: `1px solid ${theme.primary}`,
+      borderRadius: '4px',
+      cursor: 'pointer',
+      transition: 'background-color 0.2s, color 0.2s',
     },
     inputGroup: {
       display: 'flex',
@@ -62,10 +80,58 @@ export default function PolicyTiers({ className, policy, onPolicyChange }) {
 
   return (
     <div style={styles.card}>
-      <h3 style={styles.header}>{className}</h3>
+      <div style={styles.headerContainer}>
+        <h3 style={styles.header}>{className}</h3>
+        {policy.tiers && policy.tiers.length > 0 && (
+          <button 
+            onClick={() => setIsEditingTiers(!isEditingTiers)} 
+            style={styles.editButton}
+          >
+            {isEditingTiers ? 'Done' : 'Edit Tiers'}
+          </button>
+        )}
+      </div>
+
       {policy.tiers && policy.tiers.length > 0 ? (
         policy.tiers.map((tier, index) => {
           const prevTierLimit = index > 0 ? policy.tiers[index - 1].up_to : 0;
+          const isLastTier = index === policy.tiers.length - 1;
+
+          if (isEditingTiers) {
+            return (
+              <div key={index} style={styles.inputGroup}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: '1 1 auto' }}>
+                  <label style={{...styles.label, flex: '0 0 auto', minWidth: 'auto'}}>
+                    {`Tier ${index + 1} (> ${formatLimit(prevTierLimit)} to`}
+                  </label>
+                  {isLastTier ? (
+                    <span style={{...styles.label, flex: '0 0 auto', minWidth: 'auto', color: theme.textPrimary}}> Infinity)</span>
+                  ) : (
+                    <>
+                      <input
+                        type="number"
+                        style={styles.input}
+                        value={tier.up_to || ''}
+                        onChange={(e) => handleTierChange(index, 'up_to', e.target.value)}
+                        step="10000"
+                      />
+                      <span style={styles.prefix}>)</span>
+                    </>
+                  )}
+                </div>
+                <span style={styles.prefix}>$</span>
+                <input
+                  type="number"
+                  style={styles.input}
+                  value={tier.rate}
+                  onChange={(e) => handleTierChange(index, 'rate', e.target.value)}
+                  step="0.01"
+                />
+                <span style={styles.prefix}>per $1k</span>
+              </div>
+            );
+          }
+
           return (
             <div key={index} style={styles.inputGroup}>
               <label style={styles.label}>
