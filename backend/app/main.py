@@ -473,6 +473,36 @@ def get_dataframe_head(name: str) -> Any:
     return json.loads(result_json)
 
 
+@app.get("/api/dataframes/fullpardat25/multiple-class-flag-counts")
+def get_multiple_class_flag_counts() -> Any:
+    """Returns the value counts for the MULTIPLE_CLASS_FLAG in the fullpardat25 dataframe."""
+    df_name = "fullpardat25"
+    if df_name not in DATASETS:
+        raise HTTPException(status_code=404, detail=f"Dataframe '{df_name}' not found")
+
+    df = DATASETS[df_name]
+
+    column_name = "MULTIPLE_CLASS_FLAG"
+    if column_name not in df.columns:
+        raise HTTPException(
+            status_code=404, detail=f"Column '{column_name}' not found in '{df_name}'"
+        )
+
+    # value_counts(dropna=False) includes counts of NaN values.
+    counts = df[column_name].value_counts(dropna=False).to_dict()
+
+    # Convert potential non-string keys (like NaN) to strings for JSON compatibility.
+    counts_json_safe = {}
+    for k, v in counts.items():
+        if pd.isna(k):
+            counts_json_safe["NULL (Not Set)"] = v
+        else:
+            # Ensure all keys are strings
+            counts_json_safe[str(k).strip()] = v
+
+    return counts_json_safe
+
+
 @app.get("/api/policy/default")
 def get_default_policy() -> dict[str, Any]:
     """Returns the default tax policy based on FY 2025 rates."""
