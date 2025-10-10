@@ -128,6 +128,8 @@ def load_data_on_startup():
     try:
         appeals_path = os.path.join(DATA_DIR, "Appeals.csv")
         appeals_df = pd.read_csv(appeals_path)
+        appeals_df.columns = appeals_df.columns.str.strip()
+        appeals_df["TAX CLASS"] = appeals_df["TAX CLASS"].str.strip()
         appeals_df["APPEAL VALUE"] = (
             appeals_df["APPEAL VALUE"].replace({',': ''}, regex=True).astype(float)
         )
@@ -651,3 +653,4 @@ def log_frontend_error(
         payload.stack,
     )
     return {"status": "ok"}
+

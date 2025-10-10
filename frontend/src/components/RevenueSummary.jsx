@@ -90,7 +90,7 @@ export default function RevenueSummary({ results, comparisonYear, appeals }) {
       <tr key={className}>
         <td style={{...styles.td, ...styles.tdLeft}}>{className}</td>
         <td style={styles.td}>{formatNumber(data.parcel_count)}</td>
-        <td style={styles.td}>{formatCurrency(appealValue)}</td>
+        <td style={{...styles.td, color: theme.error}}>{formatCurrency(appealValue)}</td>
         <td style={styles.td}>{formatCurrency(data.certified_value)}</td>
         {comparison && <td style={styles.td}>{comparisonRow ? formatCurrency(comparisonRow.certified_value) : 'N/A'}</td>}
         {comparison && <td style={styles.td}>{comparisonRow ? formatDifference(data.certified_value, comparisonRow.certified_value) : 'N/A'}</td>}
