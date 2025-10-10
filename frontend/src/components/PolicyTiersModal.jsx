@@ -1,0 +1,222 @@
+// frontend/src/components/PolicyTiersModal.jsx
+// Purpose: Provides a modal UI for editing, adding, and removing policy tiers for a tax class.
+// Imports From: ../theme.js
+// Exported To: ../components/PolicyTiers.jsx
+import React from 'react';
+import { PlusCircle, XCircle } from 'lucide-react';
+import theme from '../theme.js';
+
+export default function PolicyTiersModal({ className, policy, onPolicyChange, onClose }) {
+  const handleTierChange = (tierIndex, field, value) => {
+    const newTiers = [...policy.tiers];
+    newTiers[tierIndex] = { ...newTiers[tierIndex], [field]: parseFloat(value) || 0 };
+    onPolicyChange(className, { ...policy, tiers: newTiers });
+  };
+
+  const addTier = () => {
+    const newTiers = policy.tiers ? [...policy.tiers] : [];
+    const lastTier = newTiers[newTiers.length - 1];
+    
+    if (lastTier) {
+        const prevLimit = newTiers.length > 1 ? newTiers[newTiers.length - 2].up_to : 0;
+        lastTier.up_to = (lastTier.up_to || prevLimit) + 1000000;
+    }
+
+    const newTier = {
+      rate: lastTier ? lastTier.rate : 10,
+      up_to: null,
+    };
+    
+    onPolicyChange(className, { ...policy, tiers: [...newTiers, newTier] });
+  };
+
+  const removeTier = (tierIndex) => {
+    let newTiers = [...policy.tiers];
+    const removedTier = newTiers.splice(tierIndex, 1)[0];
+
+    if (newTiers.length === 0) {
+      onPolicyChange(className, { rate: removedTier.rate || 0, tiers: [] });
+      onClose();
+      return;
+    }
+    
+    newTiers[newTiers.length - 1].up_to = null;
+
+    onPolicyChange(className, { ...policy, tiers: newTiers });
+  };
+
+  const formatLimit = (value) => {
+    if (value >= 1000000) return `$${value / 1000000}M`;
+    if (value >= 1000) return `$${value / 1000}k`;
+    return `$${value}`;
+  };
+
+  const styles = {
+    modalOverlay: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000,
+    },
+    modalContent: {
+      backgroundColor: theme.cardBackground,
+      padding: '2rem',
+      borderRadius: '12px',
+      border: `1px solid ${theme.border}`,
+      boxShadow: `0 6px 20px ${theme.shadow}`,
+      width: '90%',
+      maxWidth: '600px',
+    },
+    modalHeader: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: '1.5rem',
+    },
+    modalTitle: {
+      color: theme.primary,
+      margin: 0,
+    },
+    closeButton: {
+      background: 'none',
+      border: 'none',
+      cursor: 'pointer',
+      padding: '0.5rem',
+    },
+    inputGroup: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '10px',
+      marginBottom: '1rem',
+    },
+    label: {
+      fontSize: '0.9em',
+      color: theme.textSecondary,
+    },
+    input: {
+      padding: '8px',
+      borderRadius: '4px',
+      border: `1px solid ${theme.border}`,
+      backgroundColor: 'white',
+      color: theme.textPrimary,
+      width: '120px',
+    },
+    prefix: {
+      color: theme.textSecondary,
+    },
+    tierActions: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px'
+    },
+    actionButton: {
+        background: 'none',
+        border: 'none',
+        cursor: 'pointer',
+        padding: 0,
+        display: 'flex',
+        alignItems: 'center',
+    },
+    footer: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: '1.5rem',
+    },
+    addButton: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        padding: '8px 16px',
+        fontSize: '0.9em',
+        backgroundColor: theme.background,
+        color: theme.primary,
+        border: `1px solid ${theme.primary}`,
+        borderRadius: '6px',
+        cursor: 'pointer',
+    },
+    doneButton: {
+      padding: '10px 20px',
+      fontSize: '1em',
+      fontWeight: 'bold',
+      color: theme.buttonText,
+      backgroundColor: theme.primary,
+      border: 'none',
+      borderRadius: '8px',
+      cursor: 'pointer',
+    },
+  };
+
+  const tiers = policy.tiers || [];
+
+  return (
+    <div style={styles.modalOverlay} onClick={onClose}>
+      <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.modalHeader}>
+          <h2 style={styles.modalTitle}>Edit Tiers for {className}</h2>
+          <button onClick={onClose} style={styles.closeButton}>
+            <XCircle color={theme.textSecondary} />
+          </button>
+        </div>
+        
+        <div>
+          {tiers.map((tier, index) => {
+            const prevTierLimit = index > 0 ? tiers[index - 1].up_to : 0;
+            const isLastTier = index === tiers.length - 1;
+
+            return (
+              <div key={index} style={styles.inputGroup}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: '1 1 auto' }}>
+                  <label style={{...styles.label, flex: '0 0 auto', minWidth: 'auto'}}>
+                    {`Tier ${index + 1} (> ${formatLimit(prevTierLimit)} to`}
+                  </label>
+                  {isLastTier ? (
+                    <span style={{...styles.label, flex: '0 0 auto', minWidth: 'auto', color: theme.textPrimary, marginLeft: '8px'}}> Infinity)</span>
+                  ) : (
+                    <>
+                      <input
+                        type="number"
+                        style={styles.input}
+                        value={tier.up_to || ''}
+                        onChange={(e) => handleTierChange(index, 'up_to', e.target.value)}
+                        step="10000"
+                      />
+                      <span style={styles.prefix}>)</span>
+                    </>
+                  )}
+                </div>
+                <span style={styles.prefix}>$</span>
+                <input
+                  type="number"
+                  style={styles.input}
+                  value={tier.rate}
+                  onChange={(e) => handleTierChange(index, 'rate', e.target.value)}
+                  step="0.01"
+                />
+                <span style={styles.prefix}>per $1k</span>
+                <div style={styles.tierActions}>
+                    <button onClick={() => removeTier(index)} style={styles.actionButton}>
+                        <XCircle size={20} color={theme.error} />
+                    </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div style={styles.footer}>
+            <button onClick={addTier} style={styles.addButton}>
+                <PlusCircle size={18} /> Add Tier
+            </button>
+            <button onClick={onClose} style={styles.doneButton}>Done</button>
+        </div>
+      </div>
+    </div>
+  );
+}
