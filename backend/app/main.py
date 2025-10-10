@@ -1,6 +1,6 @@
 # backend/app/main.py
-# Purpose: Define the FastAPI app, load data on startup, and provide API endpoints for data inspection.
-# Imports From: None
+# Purpose: Define the FastAPI app, load data on startup, and provide API endpoints for data inspection and revenue forecasting.
+# Imports From: ./bootstrap.py
 # Exported To: ./bootstrap.py
 from __future__ import annotations
 
@@ -35,70 +35,176 @@ DATA_DEFINITIONS = {
     "fullasmt25": {
         "file_name": "fullasmt25.txt",
         "colspecs": [
-            (0, 1), (1, 2), (2, 3), (3, 6), (6, 9), (9, 13), (13, 18), (18, 22),
-            (22, 26), (26, 39), (39, 52), (52, 65), (65, 78),
+            (0, 1),
+            (1, 2),
+            (2, 3),
+            (3, 6),
+            (6, 9),
+            (9, 13),
+            (13, 18),
+            (18, 22),
+            (22, 26),
+            (26, 39),
+            (39, 52),
+            (52, 65),
+            (65, 78),
         ],
         "names": [
-            "DIVISION_TMK", "ZONE_TMK", "SECTION_TMK", "PLAT_TMK", "PARCEL_TMK",
-            "CPR_TMK", "PARCEL_YEAR", "LAND_CLASS", "TAX_RATE_CLASS",
-            "ASSESSED_LAND_VALUE", "LAND_EXEMPTION", "ASSESSED_BUILDING_VALUE",
+            "DIVISION_TMK",
+            "ZONE_TMK",
+            "SECTION_TMK",
+            "PLAT_TMK",
+            "PARCEL_TMK",
+            "CPR_TMK",
+            "PARCEL_YEAR",
+            "LAND_CLASS",
+            "TAX_RATE_CLASS",
+            "ASSESSED_LAND_VALUE",
+            "LAND_EXEMPTION",
+            "ASSESSED_BUILDING_VALUE",
             "BUILDING_EXEMPTION",
         ],
     },
     "fulllegal25": {
         "file_name": "fulllegal25.txt",
         "colspecs": [
-            (0, 1), (1, 2), (2, 3), (3, 6), (6, 9), (9, 13), (13, 18), (18, 32),
-            (32, 43), (43, 223),
+            (0, 1),
+            (1, 2),
+            (2, 3),
+            (3, 6),
+            (6, 9),
+            (9, 13),
+            (13, 18),
+            (18, 32),
+            (32, 43),
+            (43, 223),
         ],
         "names": [
-            "DIVISION_TMK", "ZONE_TMK", "SECTION_TMK", "PLAT_TMK", "PARCEL_TMK",
-            "CPR_TMK", "TAX_YEAR", "ACRES", "SQFT", "LEGAL_DESCRIPTION",
+            "DIVISION_TMK",
+            "ZONE_TMK",
+            "SECTION_TMK",
+            "PLAT_TMK",
+            "PARCEL_TMK",
+            "CPR_TMK",
+            "TAX_YEAR",
+            "ACRES",
+            "SQFT",
+            "LEGAL_DESCRIPTION",
         ],
     },
     "fulllndarclass25": {
         "file_name": "fulllndarclass25.txt",
         "colspecs": [
-            (0, 1), (1, 2), (2, 3), (3, 6), (6, 9), (9, 13), (13, 17), (17, 18),
-            (18, 23), (23, 35), (35, 40),
+            (0, 1),
+            (1, 2),
+            (2, 3),
+            (3, 6),
+            (6, 9),
+            (9, 13),
+            (13, 17),
+            (17, 18),
+            (18, 23),
+            (23, 35),
+            (35, 40),
         ],
         "names": [
-            "DIVISION_TMK", "ZONE_TMK", "SECTION_TMK", "PLAT_TMK", "PARCEL_TMK",
-            "CPR_TMK", "LAND_CLASS", "MULTIPLE_CLASS_FLAG", "PARCEL_YEAR",
-            "LAND_AREA_PER_CLASS", "LAND_LINE",
+            "DIVISION_TMK",
+            "ZONE_TMK",
+            "SECTION_TMK",
+            "PLAT_TMK",
+            "PARCEL_TMK",
+            "CPR_TMK",
+            "LAND_CLASS",
+            "MULTIPLE_CLASS_FLAG",
+            "PARCEL_YEAR",
+            "LAND_AREA_PER_CLASS",
+            "LAND_LINE",
         ],
     },
     "fullownr25": {
         "file_name": "fullownr25.txt",
         "colspecs": [
-            (0, 1), (1, 2), (2, 3), (3, 6), (6, 9), (9, 13), (13, 53), (53, 93),
-            (93, 214), (214, 294), (294, 386), (386, 426), (426, 428),
-            (428, 433), (433, 437), (437, 467),
+            (0, 1),
+            (1, 2),
+            (2, 3),
+            (3, 6),
+            (6, 9),
+            (9, 13),
+            (13, 53),
+            (53, 93),
+            (93, 214),
+            (214, 294),
+            (294, 386),
+            (386, 426),
+            (426, 428),
+            (428, 433),
+            (433, 437),
+            (437, 467),
         ],
         "names": [
-            "DIVISION_TMK", "ZONE_TMK", "SECTION_TMK", "PLAT_TMK", "PARCEL_TMK",
-            "CPR_TMK", "OWNER", "OWNER_TYPE", "CO_MAILING_ADDRESS",
-            "MAILING_STREET_ADDRESS", "MAILING_CITY_STATE_ZIP",
-            "MAILING_CITY_NAME", "MAILING_STATE", "MAILING_ZIP1", "MAILING_ZIP2",
+            "DIVISION_TMK",
+            "ZONE_TMK",
+            "SECTION_TMK",
+            "PLAT_TMK",
+            "PARCEL_TMK",
+            "CPR_TMK",
+            "OWNER",
+            "OWNER_TYPE",
+            "CO_MAILING_ADDRESS",
+            "MAILING_STREET_ADDRESS",
+            "MAILING_CITY_STATE_ZIP",
+            "MAILING_CITY_NAME",
+            "MAILING_STATE",
+            "MAILING_ZIP1",
+            "MAILING_ZIP2",
             "COUNTRY",
         ],
     },
     "fullpardat25": {
         "file_name": "fullpardat25.txt",
         "colspecs": [
-            (0, 1), (1, 2), (2, 3), (3, 6), (6, 9), (9, 13), (13, 18), (18, 19),
-            (19, 21), (21, 31), (31, 37), (37, 39), (39, 69), (69, 77),
-            (77, 87), (87, 98), (98, 115), (115, 123),
+            (0, 1),
+            (1, 2),
+            (2, 3),
+            (3, 6),
+            (6, 9),
+            (9, 13),
+            (13, 18),
+            (18, 19),
+            (19, 21),
+            (21, 31),
+            (31, 37),
+            (37, 39),
+            (39, 69),
+            (69, 77),
+            (77, 87),
+            (87, 98),
+            (98, 115),
+            (115, 123),
         ],
         "names": [
-            "DIVISION_TMK", "ZONE_TMK", "SECTION_TMK", "PLAT_TMK", "PARCEL_TMK",
-            "CPR_TMK", "PARCEL_YEAR", "MULTIPLE_CLASS_FLAG", "STREET_NUMBER_PRE",
-            "STREET_NUMBER", "ADDITIONAL_STREET_NUMBER", "STREET_DIRECTION",
-            "STREET", "STREET_NAME_SUFFIX", "UNIT_DESCRIPTION", "UNIT",
-            "PARCEL_ACRES", "NEIGHBORHOOD_CODE",
+            "DIVISION_TMK",
+            "ZONE_TMK",
+            "SECTION_TMK",
+            "PLAT_TMK",
+            "PARCEL_TMK",
+            "CPR_TMK",
+            "PARCEL_YEAR",
+            "MULTIPLE_CLASS_FLAG",
+            "STREET_NUMBER_PRE",
+            "STREET_NUMBER",
+            "ADDITIONAL_STREET_NUMBER",
+            "STREET_DIRECTION",
+            "STREET",
+            "STREET_NAME_SUFFIX",
+            "UNIT_DESCRIPTION",
+            "UNIT",
+            "PARCEL_ACRES",
+            "NEIGHBORHOOD_CODE",
         ],
     },
 }
+
 
 def load_data_on_startup():
     """Load fixed-width text files and CSVs into pandas DataFrames."""
@@ -131,9 +237,8 @@ def load_data_on_startup():
         appeals_df.columns = appeals_df.columns.str.strip()
         appeals_df["TAX CLASS"] = appeals_df["TAX CLASS"].str.strip()
         appeals_df["APPEAL VALUE"] = (
-            appeals_df["APPEAL VALUE"].replace({',': ''}, regex=True).astype(float)
+            appeals_df["APPEAL VALUE"].replace({",": ""}, regex=True).astype(float)
         )
-        # Create a mapping from class name to appeal value
         APPEALS_DATA = appeals_df.set_index("TAX CLASS")["APPEAL VALUE"].to_dict()
         logger.info("Successfully loaded %s", appeals_path)
     except FileNotFoundError:
@@ -210,21 +315,12 @@ def configure_logging() -> None:
         "root": {"level": "ERROR", "handlers": ["backend_file"]},
     }
 
-    # Avoid duplicated handlers in reload scenarios.
-    for name in (
-        "",
-        "uvicorn",
-        "uvicorn.error",
-        "uvicorn.access",
-        "fastapi",
-        "frontend.client",
-    ):
+    for name in ("", "uvicorn", "uvicorn.error", "uvicorn.access", "fastapi", "frontend.client"):
         logger = logging.getLogger(name)
         logger.handlers.clear()
 
     logging.config.dictConfig(config)
 
-    # Ensure log files exist so they can be tailed immediately.
     try:
         for f in (BACKEND_ERROR_FILE, FRONTEND_ERROR_FILE):
             if not os.path.exists(f):
@@ -235,10 +331,7 @@ def configure_logging() -> None:
 
     def _excepthook(exc_type, exc, tb):
         logger = logging.getLogger("uvicorn.error")
-        logger.error(
-            "Uncaught exception\n%s",
-            "".join(traceback.format_exception(exc_type, exc, tb)),
-        )
+        logger.error("Uncaught exception\n%s", "".join(traceback.format_exception(exc_type, exc, tb)))
 
     sys.excepthook = _excepthook  # type: ignore[assignment]
 
@@ -264,138 +357,115 @@ TAX_CLASS_MAPPING = {
 
 # FY 2025 Rates from Final Budget Handout
 DEFAULT_POLICY = {
-    "TIME SHARE": {
-        "code": 0,
-        "rate": 14.60,
-        "tiers": []
-    },
+    "TIME SHARE": {"code": 0, "rate": 14.60, "tiers": []},
     "NON-OWNER-OCCUPIED": {
         "code": 1,
         "rate": None,
         "tiers": [
-            {"up_to": 1000000, "rate": 5.87},
-            {"up_to": 3000000, "rate": 8.50},
+            {"up_to": 1_000_000, "rate": 5.87},
+            {"up_to": 3_000_000, "rate": 8.50},
             {"up_to": None, "rate": 14.00},
-        ]
+        ],
     },
     "COMMERCIALIZED RESIDENTIAL": {
         "code": 10,
         "rate": None,
         "tiers": [
-            {"up_to": 1000000, "rate": 4.00},
-            {"up_to": 3000000, "rate": 5.00},
+            {"up_to": 1_000_000, "rate": 4.00},
+            {"up_to": 3_000_000, "rate": 5.00},
             {"up_to": None, "rate": 8.00},
-        ]
+        ],
     },
     "TVR-STRH": {
         "code": 11,
         "rate": None,
         "tiers": [
-            {"up_to": 1000000, "rate": 12.50},
-            {"up_to": 3000000, "rate": 13.50},
+            {"up_to": 1_000_000, "rate": 12.50},
+            {"up_to": 3_000_000, "rate": 13.50},
             {"up_to": None, "rate": 15.00},
-        ]
+        ],
     },
     "LONG TERM RENTAL": {
         "code": 12,
         "rate": None,
         "tiers": [
-            {"up_to": 1300000, "rate": 3.00},
-            {"up_to": 3000000, "rate": 5.00},
+            {"up_to": 1_300_000, "rate": 3.00},
+            {"up_to": 3_000_000, "rate": 5.00},
             {"up_to": None, "rate": 8.00},
-        ]
+        ],
     },
-    "APARTMENT": {
-        "code": 2,
-        "rate": 3.50,
-        "tiers": []
-    },
-    "COMMERCIAL": {
-        "code": 3,
-        "rate": 6.05,
-        "tiers": []
-    },
-    "INDUSTRIAL": {
-        "code": 4,
-        "rate": 7.05,
-        "tiers": []
-    },
-    "AGRICULTURAL": {
-        "code": 5,
-        "rate": 5.74,
-        "tiers": []
-    },
-    "CONSERVATION": {
-        "code": 6,
-        "rate": 6.43,
-        "tiers": []
-    },
-    "HOTEL / RESORT": {
-        "code": 7,
-        "rate": 11.75,
-        "tiers": []
-    },
+    "APARTMENT": {"code": 2, "rate": 3.50, "tiers": []},
+    "COMMERCIAL": {"code": 3, "rate": 6.05, "tiers": []},
+    "INDUSTRIAL": {"code": 4, "rate": 7.05, "tiers": []},
+    "AGRICULTURAL": {"code": 5, "rate": 5.74, "tiers": []},
+    "CONSERVATION": {"code": 6, "rate": 6.43, "tiers": []},
+    "HOTEL / RESORT": {"code": 7, "rate": 11.75, "tiers": []},
     "OWNER-OCCUPIED": {
         "code": 9,
         "rate": None,
         "tiers": [
-            {"up_to": 1300000, "rate": 1.80},
-            {"up_to": 4500000, "rate": 2.00},
+            {"up_to": 1_300_000, "rate": 1.80},
+            {"up_to": 4_500_000, "rate": 2.00},
             {"up_to": None, "rate": 3.25},
-        ]
-    }
+        ],
+    },
 }
 
 FY_COMPARISON_DATA = {
     "FY 2025": {
-        "TIME SHARE": {"certified_value": 3905410955, "certified_revenue": 57019000},
-        "NON-OWNER-OCCUPIED": {"certified_value": 17664372655, "certified_revenue": 141536630},
-        "COMMERCIALIZED RESIDENTIAL": {"certified_value": 286823300, "certified_revenue": 1392135},
-        "TVR-STRH": {"certified_value": 18696743965, "certified_revenue": 246287352},
-        "LONG TERM RENTAL": {"certified_value": 2261799755, "certified_revenue": 7782265},
-        "APARTMENT": {"certified_value": 595055010, "certified_revenue": 2082693},
-        "COMMERCIAL": {"certified_value": 2419886030, "certified_revenue": 14640310},
-        "INDUSTRIAL": {"certified_value": 2240512595, "certified_revenue": 15795614},
-        "AGRICULTURAL": {"certified_value": 1742186795, "certified_revenue": 10000152},
-        "CONSERVATION": {"certified_value": 317375505, "certified_revenue": 2040724},
-        "HOTEL / RESORT": {"certified_value": 4383911250, "certified_revenue": 51510957},
-        "OWNER-OCCUPIED": {"certified_value": 18754560210, "certified_revenue": 35274540},
-        "totals": {"certified_value": 73268638025, "certified_revenue": 585362373}
+        "TIME SHARE": {"certified_value": 3_905_410_955, "certified_revenue": 57_019_000},
+        "NON-OWNER-OCCUPIED": {"certified_value": 17_664_372_655, "certified_revenue": 141_536_630},
+        "COMMERCIALIZED RESIDENTIAL": {"certified_value": 286_823_300, "certified_revenue": 1_392_135},
+        "TVR-STRH": {"certified_value": 18_696_743_965, "certified_revenue": 246_287_352},
+        "LONG TERM RENTAL": {"certified_value": 2_261_799_755, "certified_revenue": 7_782_265},
+        "APARTMENT": {"certified_value": 595_055_010, "certified_revenue": 2_082_693},
+        "COMMERCIAL": {"certified_value": 2_419_886_030, "certified_revenue": 14_640_310},
+        "INDUSTRIAL": {"certified_value": 2_240_512_595, "certified_revenue": 15_795_614},
+        "AGRICULTURAL": {"certified_value": 1_742_186_795, "certified_revenue": 10_000_152},
+        "CONSERVATION": {"certified_value": 317_375_505, "certified_revenue": 2_040_724},
+        "HOTEL / RESORT": {"certified_value": 4_383_911_250, "certified_revenue": 51_510_957},
+        "OWNER-OCCUPIED": {"certified_value": 18_754_560_210, "certified_revenue": 35_274_540},
+        "totals": {"certified_value": 73_268_638_025, "certified_revenue": 585_362_373},
     },
     "FY 2026": {
-        "TIME SHARE": {"certified_value": 4202362000, "certified_revenue": 61774721},
-        "NON-OWNER-OCCUPIED": {"certified_value": 19709983430, "certified_revenue": 173968757},
-        "COMMERCIALIZED RESIDENTIAL": {"certified_value": 315851925, "certified_revenue": 1117435},
-        "TVR-STRH": {"certified_value": 19725277065, "certified_revenue": 264661563},
-        "LONG TERM RENTAL": {"certified_value": 3487698245, "certified_revenue": 11585508},
-        "APARTMENT": {"certified_value": 720171325, "certified_revenue": 2520600},
-        "COMMERCIAL": {"certified_value": 2722903800, "certified_revenue": 16473568},
-        "INDUSTRIAL": {"certified_value": 2425696900, "certified_revenue": 17101163},
-        "AGRICULTURAL": {"certified_value": 2025402205, "certified_revenue": 11625809},
-        "CONSERVATION": {"certified_value": 343329550, "certified_revenue": 2207609},
-        "HOTEL / RESORT": {"certified_value": 4631269245, "certified_revenue": 54648977},
-        "OWNER-OCCUPIED": {"certified_value": 23418112540, "certified_revenue": 41392002},
-        "totals": {"certified_value": 83728058230, "certified_revenue": 659077712}
-    }
+        "TIME SHARE": {"certified_value": 4_202_362_000, "certified_revenue": 61_774_721},
+        "NON-OWNER-OCCUPIED": {"certified_value": 19_709_983_430, "certified_revenue": 173_968_757},
+        "COMMERCIALIZED RESIDENTIAL": {"certified_value": 315_851_925, "certified_revenue": 1_117_435},
+        "TVR-STRH": {"certified_value": 19_725_277_065, "certified_revenue": 264_661_563},
+        "LONG TERM RENTAL": {"certified_value": 3_487_698_245, "certified_revenue": 11_585_508},
+        "APARTMENT": {"certified_value": 720_171_325, "certified_revenue": 2_520_600},
+        "COMMERCIAL": {"certified_value": 2_722_903_800, "certified_revenue": 16_473_568},
+        "INDUSTRIAL": {"certified_value": 2_425_696_900, "certified_revenue": 17_101_163},
+        "AGRICULTURAL": {"certified_value": 2_025_402_205, "certified_revenue": 11_625_809},
+        "CONSERVATION": {"certified_value": 343_329_550, "certified_revenue": 2_207_609},
+        "HOTEL / RESORT": {"certified_value": 4_631_269_245, "certified_revenue": 54_648_977},
+        "OWNER-OCCUPIED": {"certified_value": 23_418_112_540, "certified_revenue": 41_392_002},
+        "totals": {"certified_value": 83_728_058_230, "certified_revenue": 659_077_712},
+    },
 }
+
 
 class Tier(BaseModel):
     up_to: Optional[int]
     rate: float
+
 
 class TaxClassPolicy(BaseModel):
     code: int
     rate: Optional[float]
     tiers: List[Tier]
 
+
 class ForecastRequest(BaseModel):
     policy: dict[str, TaxClassPolicy]
     appeals: dict[str, float]
+
 
 class RevenueResult(BaseModel):
     certified_value: float
     certified_revenue: float
     parcel_count: int
+
 
 class ForecastResponse(BaseModel):
     results_by_class: dict[str, RevenueResult]
@@ -406,9 +476,11 @@ class ForecastResponse(BaseModel):
 # ---- FastAPI App --------------------------------------------------------------
 app = FastAPI()
 
+
 @app.on_event("startup")
 async def startup_event():
     load_data_on_startup()
+
 
 # ---- Exception Logging Middleware (ASGI) --------------------------------------
 class ExceptionLoggingMiddleware:
@@ -428,12 +500,8 @@ class ExceptionLoggingMiddleware:
         except Exception:
             path = scope.get("path")
             client = scope.get("client")
-            client_ip = (
-                client[0] if isinstance(client, (tuple, list)) and client else None
-            )
-            self.logger.exception(
-                "Unhandled exception | path=%s | ip=%s", path, client_ip
-            )
+            client_ip = client[0] if isinstance(client, (tuple, list)) and client else None
+            self.logger.exception("Unhandled exception | path=%s | ip=%s", path, client_ip)
             raise
 
 
@@ -441,10 +509,7 @@ class ExceptionLoggingMiddleware:
 app.add_middleware(ExceptionLoggingMiddleware)
 
 # CORS should come after logging so CORS errors are captured too.
-origins = [
-    "http://localhost",
-    "http://localhost:5173",
-]
+origins = ["http://localhost", "http://localhost:5173"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -454,7 +519,7 @@ app.add_middleware(
 )
 
 
-# ---- Endpoints ----------------------------------------------------------------
+# ---- Endpoints: Dataframes ----------------------------------------------------
 @app.get("/api/dataframes")
 def list_dataframes() -> list[str]:
     """Returns a list of available dataframe names."""
@@ -467,42 +532,49 @@ def get_dataframe_head(name: str) -> Any:
     if name not in DATASETS:
         raise HTTPException(status_code=404, detail="Dataframe not found")
     df = DATASETS[name]
-    # Convert to JSON, handling potential NaN values which are not valid JSON
     df_head = df.head(10).replace({np.nan: None})
     result_json = df_head.to_json(orient="records")
     return json.loads(result_json)
 
 
-@app.get("/api/dataframes/fullpardat25/multiple-class-flag-counts")
-def get_multiple_class_flag_counts() -> Any:
-    """Returns the value counts for the MULTIPLE_CLASS_FLAG in the fullpardat25 dataframe."""
-    df_name = "fullpardat25"
-    if df_name not in DATASETS:
-        raise HTTPException(status_code=404, detail=f"Dataframe '{df_name}' not found")
-
-    df = DATASETS[df_name]
-
-    column_name = "MULTIPLE_CLASS_FLAG"
-    if column_name not in df.columns:
-        raise HTTPException(
-            status_code=404, detail=f"Column '{column_name}' not found in '{df_name}'"
-        )
-
-    # value_counts(dropna=False) includes counts of NaN values.
-    counts = df[column_name].value_counts(dropna=False).to_dict()
-
-    # Convert potential non-string keys (like NaN) to strings for JSON compatibility.
-    counts_json_safe = {}
+def _value_counts_json_safe(series: pd.Series) -> dict[str, int]:
+    counts = series.value_counts(dropna=False).to_dict()
+    safe: dict[str, int] = {}
     for k, v in counts.items():
         if pd.isna(k):
-            counts_json_safe["NULL (Not Set)"] = v
+            safe["NULL (Not Set)"] = v
         else:
-            # Ensure all keys are strings
-            counts_json_safe[str(k).strip()] = v
-
-    return counts_json_safe
+            safe[str(k).strip()] = v
+    return safe
 
 
+@app.get("/api/dataframes/fullpardat25/multiple-class-flag-counts")
+def get_multiple_class_flag_counts_pardat() -> Any:
+    """Value counts for MULTIPLE_CLASS_FLAG in fullpardat25."""
+    df_name = "fullpardat25"
+    column_name = "MULTIPLE_CLASS_FLAG"
+    if df_name not in DATASETS:
+        raise HTTPException(status_code=404, detail=f"Dataframe '{df_name}' not found")
+    df = DATASETS[df_name]
+    if column_name not in df.columns:
+        raise HTTPException(status_code=404, detail=f"Column '{column_name}' not found in '{df_name}'")
+    return _value_counts_json_safe(df[column_name])
+
+
+@app.get("/api/dataframes/fulllndarclass25/multiple-class-flag-counts")
+def get_multiple_class_flag_counts_lndar() -> Any:
+    """Value counts for MULTIPLE_CLASS_FLAG in fulllndarclass25."""
+    df_name = "fulllndarclass25"
+    column_name = "MULTIPLE_CLASS_FLAG"
+    if df_name not in DATASETS:
+        raise HTTPException(status_code=404, detail=f"Dataframe '{df_name}' not found")
+    df = DATASETS[df_name]
+    if column_name not in df.columns:
+        raise HTTPException(status_code=404, detail=f"Column '{column_name}' not found in '{df_name}'")
+    return _value_counts_json_safe(df[column_name])
+
+
+# ---- Endpoints: Policy & Appeals ---------------------------------------------
 @app.get("/api/policy/default")
 def get_default_policy() -> dict[str, Any]:
     """Returns the default tax policy based on FY 2025 rates."""
@@ -517,6 +589,41 @@ def get_default_appeals() -> dict[str, float]:
     return APPEALS_DATA
 
 
+@app.get("/api/policy/multiclass-behavior")
+def get_multiclass_behavior() -> dict[str, Any]:
+    """
+    Declare how the forecast handles parcels flagged as multi-class ('X') and provide quick counts.
+
+    Strategy: Ignore the multi-class flag for tax computation and use fullasmt25.TAX_RATE_CLASS
+    as the single source of truth for rate/tier lookup.
+    """
+    summary: dict[str, Any] = {
+        "strategy": "ignore_flag_use_tax_rate_class",
+        "description": (
+            "Parcels with MULTIPLE_CLASS_FLAG = 'X' are not apportioned across classes. "
+            "Revenue is computed solely from fullasmt25.TAX_RATE_CLASS using provided tiers/rates."
+        ),
+        "data_sources": {
+            "pardat_flag": "fullpardat25.MULTIPLE_CLASS_FLAG",
+            "lndar_flag": "fulllndarclass25.MULTIPLE_CLASS_FLAG",
+            "rate_class": "fullasmt25.TAX_RATE_CLASS",
+        },
+        "counts": {},
+        "notes": [
+            "MULTIPLE_CLASS_FLAG indicates multiple land classes on record, not billable tax class.",
+            "TAX_RATE_CLASS encodes the class actually used for billing (e.g., owner-occupied override).",
+        ],
+    }
+
+    if "fullpardat25" in DATASETS and "MULTIPLE_CLASS_FLAG" in DATASETS["fullpardat25"].columns:
+        summary["counts"]["pardat"] = _value_counts_json_safe(DATASETS["fullpardat25"]["MULTIPLE_CLASS_FLAG"])
+    if "fulllndarclass25" in DATASETS and "MULTIPLE_CLASS_FLAG" in DATASETS["fulllndarclass25"].columns:
+        summary["counts"]["lndar"] = _value_counts_json_safe(DATASETS["fulllndarclass25"]["MULTIPLE_CLASS_FLAG"])
+
+    return summary
+
+
+# ---- Endpoints: Forecast ------------------------------------------------------
 @app.post("/api/revenue-forecast", response_model=ForecastResponse)
 def calculate_revenue_forecast(request: ForecastRequest) -> Any:
     """Calculates a revenue forecast based on the provided tax policy."""
@@ -533,9 +640,8 @@ def calculate_revenue_forecast(request: ForecastRequest) -> Any:
         df["total_assessed_value"] = df["ASSESSED_LAND_VALUE"] + df["ASSESSED_BUILDING_VALUE"]
         df["total_exemption"] = df["LAND_EXEMPTION"] + df["BUILDING_EXEMPTION"]
         df["net_taxable_value"] = df["total_assessed_value"] - df["total_exemption"]
-        # Ensure net taxable value is not negative
         df["net_taxable_value"] = df["net_taxable_value"].clip(lower=0)
-        
+
         df["tax"] = 0.0
 
         for class_name, class_policy in request.policy.items():
@@ -545,40 +651,35 @@ def calculate_revenue_forecast(request: ForecastRequest) -> Any:
             if not mask.any():
                 continue
 
-            # Use net_taxable_value for calculation
             values = df.loc[mask, "net_taxable_value"]
 
             if class_policy.tiers:
-                # Tiered marginal rate calculation
                 tax = pd.Series(0.0, index=values.index)
                 remaining_values = values.copy()
                 lower_bound = 0
 
                 for tier in class_policy.tiers:
                     rate = tier.rate / 1000.0
-                    upper_bound = tier.up_to if tier.up_to is not None else float('inf')
+                    upper_bound = tier.up_to if tier.up_to is not None else float("inf")
                     bracket_width = upper_bound - lower_bound
 
-                    # Value to be taxed in this specific bracket
                     value_in_bracket = remaining_values.clip(upper=bracket_width)
                     tax += value_in_bracket * rate
 
-                    # Reduce remaining value for the next tier
                     remaining_values = (remaining_values - bracket_width).clip(lower=0)
-                    
+
                     if remaining_values.sum() == 0:
-                        break # Optimization
+                        break
 
                     lower_bound = upper_bound
-                
+
                 df.loc[mask, "tax"] = tax
             elif class_policy.rate is not None:
-                # Flat rate calculation
                 rate = class_policy.rate / 1000.0
                 df.loc[mask, "tax"] = values * rate
 
         # Aggregate results
-        results = {}
+        results: dict[str, dict[str, float | int]] = {}
         grouped = df.groupby("TAX_RATE_CLASS")
 
         for class_code, group_df in grouped:
@@ -587,38 +688,34 @@ def calculate_revenue_forecast(request: ForecastRequest) -> Any:
                 continue
 
             results[class_name] = {
-                "certified_value": group_df["net_taxable_value"].sum(),
-                "certified_revenue": group_df["tax"].sum(),
-                "parcel_count": len(group_df),
+                "certified_value": float(group_df["net_taxable_value"].sum()),
+                "certified_revenue": float(group_df["tax"].sum()),
+                "parcel_count": int(len(group_df)),
             }
 
-        # Apply appeal deductions
-        adjusted_results = {}
+        # Apply appeal deductions at the class level
+        adjusted_results: dict[str, dict[str, float | int]] = {}
         for class_name, result_data in results.items():
-            appeal_value = request.appeals.get(class_name, 0)
-            original_value = result_data["certified_value"]
+            appeal_value = float(request.appeals.get(class_name, 0) or 0)
+            original_value = float(result_data["certified_value"])
 
             if original_value > 0 and appeal_value > 0:
-                # Per troubleshooting guide, deduct 50% of appeal value
-                appeal_deduction = appeal_value * 0.5
-                appeal_deduction = min(appeal_deduction, original_value)
-
+                appeal_deduction = min(appeal_value * 0.5, original_value)
                 adjusted_value = original_value - appeal_deduction
-                reduction_factor = adjusted_value / original_value if original_value > 0 else 0
-                adjusted_revenue = result_data["certified_revenue"] * reduction_factor
+                reduction_factor = adjusted_value / original_value if original_value > 0 else 0.0
+                adjusted_revenue = float(result_data["certified_revenue"]) * reduction_factor
 
                 adjusted_results[class_name] = {
                     "certified_value": adjusted_value,
                     "certified_revenue": adjusted_revenue,
-                    "parcel_count": result_data["parcel_count"],
+                    "parcel_count": int(result_data["parcel_count"]),
                 }
             else:
                 adjusted_results[class_name] = result_data
 
-        # Calculate totals from adjusted results
-        total_value = sum(r["certified_value"] for r in adjusted_results.values())
-        total_revenue = sum(r["certified_revenue"] for r in adjusted_results.values())
-        total_parcels = sum(r["parcel_count"] for r in adjusted_results.values())
+        total_value = sum(float(r["certified_value"]) for r in adjusted_results.values())
+        total_revenue = sum(float(r["certified_revenue"]) for r in adjusted_results.values())
+        total_parcels = sum(int(r["parcel_count"]) for r in adjusted_results.values())
 
         return {
             "results_by_class": adjusted_results,
@@ -627,13 +724,14 @@ def calculate_revenue_forecast(request: ForecastRequest) -> Any:
                 "certified_revenue": total_revenue,
                 "parcel_count": total_parcels,
             },
-            "comparison_data": FY_COMPARISON_DATA
+            "comparison_data": FY_COMPARISON_DATA,
         }
     except Exception as e:
         logging.getLogger("fastapi").error("Revenue calculation failed: %s", e)
         raise HTTPException(status_code=500, detail="An error occurred during revenue calculation.")
 
 
+# ---- Misc --------------------------------------------------------------------
 @app.get("/api/hello")
 def read_root() -> dict[str, Any]:
     return {
@@ -646,10 +744,9 @@ def read_root() -> dict[str, Any]:
 def get_external_data() -> dict[str, Any]:
     try:
         response = requests.get("https://jsonplaceholder.typicode.com/todos/1", timeout=5)
-        response.raise_for_status()  # Raise an exception for bad status codes
+        response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
-        # Log the error and return a user-friendly message
         logging.getLogger("fastapi").error("Failed to fetch external data: %s", e)
         return {"error": "Failed to fetch data from external service."}
 
@@ -666,9 +763,7 @@ class FrontendErrorPayload(BaseModel):
 
 
 @app.post("/api/logs/frontend")
-def log_frontend_error(
-    payload: FrontendErrorPayload, request: Request
-) -> dict[str, str]:
+def log_frontend_error(payload: FrontendErrorPayload, request: Request) -> dict[str, str]:
     client_ip = request.client.host if request.client else None
     logger = logging.getLogger("frontend.client")
     logger.error(
@@ -683,4 +778,3 @@ def log_frontend_error(
         payload.stack,
     )
     return {"status": "ok"}
-
