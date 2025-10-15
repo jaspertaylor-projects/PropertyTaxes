@@ -16,30 +16,36 @@ export default function PolicyTiersModal({ className, policy, onPolicyChange, on
   const addTier = () => {
     const currentTiers = policy.tiers || [];
 
-    // If there are no tiers, create the first one from the existing flat rate.
+    // This function is called from the modal to add a new tier to an existing list.
+    // The parent component ensures there's at least one tier before opening the modal.
     if (currentTiers.length === 0) {
+      console.error("addTier was called with no tiers, which should not happen.");
+      // As a fallback, create a first tier, clearing the flat rate.
       const newTier = { rate: policy.rate || 10, up_to: null };
-      onPolicyChange(className, { ...policy, tiers: [newTier] });
+      onPolicyChange(className, { ...policy, rate: undefined, tiers: [newTier] });
       return;
     }
 
     const lastTierIndex = currentTiers.length - 1;
     const lastTier = currentTiers[lastTierIndex];
-    const prevLimit = lastTierIndex > 0 ? currentTiers[lastTierIndex - 1].up_to : 0;
+    
+    // The lower bound for the last tier is the upper bound of the tier before it.
+    const lowerBoundOfLastTier = lastTierIndex > 0 ? currentTiers[lastTierIndex - 1].up_to : 0;
 
-    // Create an updated version of the tier that was previously last
+    // The tier that was previously last now needs an upper bound.
+    // We'll set a default that is 1M higher than its lower bound.
     const updatedLastTier = {
       ...lastTier,
-      up_to: prevLimit + 1000000,
+      up_to: (lowerBoundOfLastTier || 0) + 1000000,
     };
 
-    // Create the new tier that will become the last one
+    // The new tier becomes the last one, with no upper bound (infinity).
+    // It inherits the rate from the previously last tier.
     const newTier = {
       rate: lastTier.rate,
       up_to: null,
     };
 
-    // Construct the new tiers array without mutation
     const newTiers = [
       ...currentTiers.slice(0, lastTierIndex),
       updatedLastTier,
