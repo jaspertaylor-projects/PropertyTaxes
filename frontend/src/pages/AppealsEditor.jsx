@@ -6,18 +6,18 @@ import React, { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import theme from '../theme.js';
 import Spinner from '../components/Spinner.jsx';
-import { fetchDefaultAppeals, updateAppeal } from '../store/forecastSlice.js';
+import { fetchDefaults, updateAppeal } from '../store/forecastSlice.js';
 
 export default function AppealsEditor() {
   const dispatch = useDispatch();
-  const { appeals, status, error } = useSelector((state) => state.forecast);
-  const isLoading = status === 'loading' && Object.keys(appeals).length === 0;
+  const { appeals, exemptions, status, error } = useSelector((state) => state.forecast);
+  const isLoading = status === 'loading' && (Object.keys(appeals).length === 0 || Object.keys(exemptions).length === 0);
 
   useEffect(() => {
-    if (Object.keys(appeals).length === 0) {
-      dispatch(fetchDefaultAppeals());
+    if (Object.keys(appeals).length === 0 || Object.keys(exemptions).length === 0) {
+      dispatch(fetchDefaults());
     }
-  }, [dispatch, appeals]);
+  }, [dispatch, appeals, exemptions]);
 
   const handleAppealChange = (className, value) => {
     const numericValue = value === '' ? 0 : parseFloat(value.replace(/,/g, ''));
@@ -91,8 +91,8 @@ export default function AppealsEditor() {
   return (
     <div>
       <header style={styles.header}>
-        <h1 style={styles.title}>Appeals Editor</h1>
-        <p style={styles.subtitle}>Adjust the total appeal value for each tax class. 50% of this value will be deducted from the class's total assessed value before calculating revenue.</p>
+        <h1 style={styles.title}>Appeals & Exemptions</h1>
+        <p style={styles.subtitle}>Adjust appeal values and review parcel exemptions by tax class.</p>
       </header>
       <main style={styles.contentCard}>
         {isLoading ? (
@@ -105,6 +105,9 @@ export default function AppealsEditor() {
               <tr>
                 <th style={styles.th}>Tax Class</th>
                 <th style={{...styles.th, textAlign: 'right'}}>Appeal Value ($)</th>
+                <th style={{...styles.th, textAlign: 'right'}}>Data Parcels</th>
+                <th style={{...styles.th, textAlign: 'right'}}>FY2026 Parcels</th>
+                <th style={{...styles.th, textAlign: 'right'}}>Exemptions</th>
               </tr>
             </thead>
             <tbody>
@@ -119,6 +122,9 @@ export default function AppealsEditor() {
                       onChange={(e) => handleAppealChange(className, e.target.value)}
                     />
                   </td>
+                  <td style={{...styles.td, textAlign: 'right'}}>{formatNumber(exemptions[className]?.data_parcel_count || 0)}</td>
+                  <td style={{...styles.td, textAlign: 'right'}}>{formatNumber(exemptions[className]?.fy2026_parcel_count || 0)}</td>
+                  <td style={{...styles.td, textAlign: 'right'}}>{formatNumber(exemptions[className]?.exemption_count || 0)}</td>
                 </tr>
               ))}
             </tbody>

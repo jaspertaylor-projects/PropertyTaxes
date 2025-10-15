@@ -7,6 +7,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 const initialState = {
   policy: null,
   appeals: {},
+  exemptions: {},
   results: null,
   status: 'idle', // 'idle' | 'loading' | 'succeeded' | 'failed'
   error: null,
@@ -18,17 +19,17 @@ export const fetchDefaultPolicy = createAsyncThunk('forecast/fetchDefaultPolicy'
   return response.json();
 });
 
-export const fetchDefaultAppeals = createAsyncThunk('forecast/fetchDefaultAppeals', async () => {
-  const response = await fetch('/api/appeals/default');
-  if (!response.ok) throw new Error('Failed to fetch default appeals');
+export const fetchDefaults = createAsyncThunk('forecast/fetchDefaults', async () => {
+  const response = await fetch('/api/appeals-and-exemptions');
+  if (!response.ok) throw new Error('Failed to fetch default appeals and exemptions');
   return response.json();
 });
 
-export const calculateForecast = createAsyncThunk('forecast/calculateForecast', async ({ policy, appeals }) => {
+export const calculateForecast = createAsyncThunk('forecast/calculateForecast', async ({ policy, appeals, applyExemptionAverage }) => {
   const response = await fetch('/api/revenue-forecast', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ policy, appeals }),
+    body: JSON.stringify({ policy, appeals, applyExemptionAverage }),
   });
   if (!response.ok) throw new Error('Calculation failed on the server.');
   return response.json();
@@ -60,14 +61,15 @@ const forecastSlice = createSlice({
         state.status = 'failed';
         state.error = action.error.message;
       })
-      .addCase(fetchDefaultAppeals.pending, (state) => {
+      .addCase(fetchDefaults.pending, (state) => {
         state.status = 'loading';
       })
-      .addCase(fetchDefaultAppeals.fulfilled, (state, action) => {
+      .addCase(fetchDefaults.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        state.appeals = action.payload;
+        state.appeals = action.payload.appeals;
+        state.exemptions = action.payload.exemptions;
       })
-      .addCase(fetchDefaultAppeals.rejected, (state, action) => {
+      .addCase(fetchDefaults.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.error.message;
       })

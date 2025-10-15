@@ -444,6 +444,21 @@ FY_COMPARISON_DATA = {
     },
 }
 
+FY2026_PARCEL_COUNTS = {
+    "TIME SHARE": 2480,
+    "NON-OWNER-OCCUPIED": 14781,
+    "COMMERCIALIZED RESIDENTIAL": 149,
+    "TVR-STRH": 12500,
+    "LONG TERM RENTAL": 4163,
+    "APARTMENT": 684,
+    "COMMERCIAL": 2004,
+    "INDUSTRIAL": 807,
+    "AGRICULTURAL": 5489,
+    "CONSERVATION": 1088,
+    "HOTEL / RESORT": 495,
+    "OWNER-OCCUPIED": 27792,
+}
+
 
 class Tier(BaseModel):
     up_to: Optional[int]
@@ -459,12 +474,14 @@ class TaxClassPolicy(BaseModel):
 class ForecastRequest(BaseModel):
     policy: dict[str, TaxClassPolicy]
     appeals: dict[str, float]
+    applyExemptionAverage: bool
 
 
 class RevenueResult(BaseModel):
     certified_value: float
     certified_revenue: float
     parcel_count: int
+    exemption_count: int
 
 
 class ForecastResponse(BaseModel):
@@ -581,12 +598,36 @@ def get_default_policy() -> dict[str, Any]:
     return DEFAULT_POLICY
 
 
-@app.get("/api/appeals/default")
-def get_default_appeals() -> dict[str, float]:
-    """Returns the default appeal values by tax class."""
+@app.get("/api/appeals-and-exemptions")
+def get_appeals_and_exemptions() -> dict[str, Any]:
+    """Returns default appeal values and calculated exemptions by tax class."""
     if not APPEALS_DATA:
         raise HTTPException(status_code=503, detail="Appeals data not loaded.")
-    return APPEALS_DATA
+    if "fullasmt25" not in DATASETS:
+        raise HTTPException(status_code=503, detail="Assessment data not loaded.")
+
+    df = DATASETS["fullasmt25"].copy()
+    # Exclude disaster-affected parcels
+    df = df[(df["ASSESSED_LAND_VALUE"] > 0) | (df["ASSESSED_BUILDING_VALUE"] > 0)]
+
+    data_parcel_counts = df["TAX_RATE_CLASS"].value_counts().to_dict()
+
+    exemptions = {}
+    for class_code, class_name in TAX_CLASS_MAPPING.items():
+        data_count = data_parcel_counts.get(class_code, 0)
+        handout_count = FY2026_PARCEL_COUNTS.get(class_name, 0)
+        # Exemption is the difference, cannot be negative
+        exemption_count = max(0, data_count - handout_count)
+        exemptions[class_name] = {
+            "data_parcel_count": data_count,
+            "fy2026_parcel_count": handout_count,
+            "exemption_count": exemption_count,
+        }
+
+    return {
+        "appeals": APPEALS_DATA,
+        "exemptions": exemptions,
+    }
 
 
 @app.get("/api/policy/multiclass-behavior")
@@ -687,10 +728,25 @@ def calculate_revenue_forecast(request: ForecastRequest) -> Any:
             if not class_name or class_name not in request.policy:
                 continue
 
+            data_parcel_count = int(len(group_df))
+            fy2026_count = FY2026_PARCEL_COUNTS.get(class_name, 0)
+            exemption_count = max(0, data_parcel_count - fy2026_count)
+
+            certified_value = float(group_df["net_taxable_value"].sum())
+            certified_revenue = float(group_df["tax"].sum())
+
+            # Apply exemption averaging if requested
+            if request.applyExemptionAverage and data_parcel_count > 0:
+                non_exempt_count = data_parcel_count - exemption_count
+                adjustment_factor = non_exempt_count / data_parcel_count
+                certified_value *= adjustment_factor
+                certified_revenue *= adjustment_factor
+
             results[class_name] = {
-                "certified_value": float(group_df["net_taxable_value"].sum()),
-                "certified_revenue": float(group_df["tax"].sum()),
-                "parcel_count": int(len(group_df)),
+                "certified_value": certified_value,
+                "certified_revenue": certified_revenue,
+                "parcel_count": data_parcel_count,  # This is the original count from data
+                "exemption_count": exemption_count,
             }
 
         # Apply appeal deductions at the class level
@@ -709,6 +765,7 @@ def calculate_revenue_forecast(request: ForecastRequest) -> Any:
                     "certified_value": adjusted_value,
                     "certified_revenue": adjusted_revenue,
                     "parcel_count": int(result_data["parcel_count"]),
+                    "exemption_count": int(result_data["exemption_count"]),
                 }
             else:
                 adjusted_results[class_name] = result_data
@@ -716,6 +773,7 @@ def calculate_revenue_forecast(request: ForecastRequest) -> Any:
         total_value = sum(float(r["certified_value"]) for r in adjusted_results.values())
         total_revenue = sum(float(r["certified_revenue"]) for r in adjusted_results.values())
         total_parcels = sum(int(r["parcel_count"]) for r in adjusted_results.values())
+        total_exemptions = sum(int(r["exemption_count"]) for r in adjusted_results.values())
 
         return {
             "results_by_class": adjusted_results,
@@ -723,6 +781,7 @@ def calculate_revenue_forecast(request: ForecastRequest) -> Any:
                 "certified_value": total_value,
                 "certified_revenue": total_revenue,
                 "parcel_count": total_parcels,
+                "exemption_count": total_exemptions,
             },
             "comparison_data": FY_COMPARISON_DATA,
         }

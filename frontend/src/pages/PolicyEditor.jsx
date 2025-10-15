@@ -12,24 +12,22 @@ import {
   fetchDefaultPolicy,
   updatePolicy,
   calculateForecast,
-  fetchDefaultAppeals,
+  fetchDefaults,
 } from '../store/forecastSlice.js';
 
 export default function PolicyEditor() {
   const dispatch = useDispatch();
   const { policy, appeals, results, status, error } = useSelector((state) => state.forecast) || {};
   const [comparisonYear, setComparisonYear] = useState('None');
+  const [applyExemptionAverage, setApplyExemptionAverage] = useState(false);
   const isLoading = status === 'loading';
 
   useEffect(() => {
     if (!policy) {
       dispatch(fetchDefaultPolicy());
     }
-    // Ensure appeals are loaded if not already present.
-    // The original check `Object.keys(appeals).length === 0` is unsafe if `appeals` can be null.
-    // This safely checks for null/undefined or an empty object.
     if (!appeals || Object.keys(appeals).length === 0) {
-      dispatch(fetchDefaultAppeals());
+      dispatch(fetchDefaults());
     }
   }, [dispatch, policy, appeals]);
 
@@ -39,7 +37,7 @@ export default function PolicyEditor() {
 
   const handleCalculate = () => {
     if (policy && appeals) {
-      dispatch(calculateForecast({ policy, appeals }));
+      dispatch(calculateForecast({ policy, appeals, applyExemptionAverage }));
     }
   };
 
@@ -77,6 +75,7 @@ export default function PolicyEditor() {
       alignItems: 'center',
       gap: '1.5rem',
       marginBottom: '1rem',
+      flexWrap: 'wrap',
     },
     buttonContainer: {
       display: 'flex',
@@ -112,6 +111,19 @@ export default function PolicyEditor() {
       backgroundColor: theme.background,
       color: theme.textPrimary,
       fontSize: '0.9em',
+    },
+    toggleContainer: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.5rem',
+    },
+    toggleLabel: {
+      color: theme.textSecondary,
+      fontWeight: 'bold',
+      cursor: 'pointer',
+    },
+    toggleSwitch: {
+      cursor: 'pointer',
     },
   };
 
@@ -149,6 +161,18 @@ export default function PolicyEditor() {
                   {isLoading ? 'Calculating...' : 'Calculate Revenue'}
                 </button>
                 {isLoading && <Spinner />}
+              </div>
+              <div style={styles.toggleContainer}>
+                <input
+                  type="checkbox"
+                  id="exemption-toggle"
+                  style={styles.toggleSwitch}
+                  checked={applyExemptionAverage}
+                  onChange={(e) => setApplyExemptionAverage(e.target.checked)}
+                />
+                <label htmlFor="exemption-toggle" style={styles.toggleLabel}>
+                  Apply Exemptions
+                </label>
               </div>
               <div>
                 <label htmlFor="comparison-year" style={styles.selectLabel}>Compare To: </label>

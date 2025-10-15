@@ -85,11 +85,13 @@ export default function RevenueSummary({ results, comparisonYear, appeals }) {
     const appealValue = totalRow ? 
       Object.values(appeals || {}).reduce((sum, val) => sum + val, 0) :
       (appeals && appeals[className]) || 0;
+    const exemptionCount = data.exemption_count ?? 0;
 
     return (
       <tr key={className}>
         <td style={{...styles.td, ...styles.tdLeft}}>{className}</td>
         <td style={styles.td}>{formatNumber(data.parcel_count)}</td>
+        <td style={{...styles.td, color: theme.textSecondary}}>{formatNumber(exemptionCount)}</td>
         <td style={{...styles.td, color: theme.error}}>{formatCurrency(appealValue)}</td>
         <td style={styles.td}>{formatCurrency(data.certified_value)}</td>
         {comparison && <td style={styles.td}>{comparisonRow ? formatCurrency(comparisonRow.certified_value) : 'N/A'}</td>}
@@ -109,6 +111,7 @@ export default function RevenueSummary({ results, comparisonYear, appeals }) {
           <tr>
             <th style={{...styles.th, textAlign: 'left'}}>Tax Class</th>
             <th style={{...styles.th, textAlign: 'right'}}>Parcels</th>
+            <th style={{...styles.th, textAlign: 'right'}}>Exemptions</th>
             <th style={{...styles.th, textAlign: 'right'}}>Appeal Value</th>
             <th style={{...styles.th, textAlign: 'right'}}>Forecast Value (Net)</th>
             {comparison && <th style={{...styles.th, textAlign: 'right'}}>{comparisonYear} Value</th>}
