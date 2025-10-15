@@ -1,8 +1,8 @@
 # docker-compose.yml
-# Purpose: Ensure frontend dependencies are always in-sync at container start, auto-install missing modules
-#          (e.g., lucide-react), and preserve hot reloading. Also maintains backend venv and shared logs.
+# Purpose: Dev stack that avoids port collisions by publishing to ephemeral host ports by default, gates frontend on backend health, and preserves runtime venv persistence with pinned Python for uv.
 # Imports From: ./backend/Dockerfile, ./frontend/Dockerfile
-# Exported To: The Docker daemon and local ./logs + ./backend/.venv for persistence.
+# Exported To: Docker daemon; persists ./logs and ./backend/.venv (runtime installs).
+
 services:
   # Ensure host ./logs is owned by ${UID:-1000}:${GID:-1000} before others start.
   log-perms:
@@ -55,8 +55,14 @@ services:
       - UV_CACHE_DIR=/tmp/uv-cache
       - PIP_CACHE_DIR=/tmp/pip-cache
       - LOG_DIR=/logs
+      # Keep runtime venv installs but pin uv to the image's Python 3.12 to avoid CPython drift/hangs.
+      - UV_PYTHON_PREFER_SYSTEM=1
+      - UV_PYTHON=python3.12
     ports:
-      - "${HOST_BACKEND_PORT:-8000}:8000"
+      # Publish to a free host port by default (published: 0). Override with HOST_BACKEND_PORT if you want a fixed port.
+      - target: 8000
+        published: ${HOST_BACKEND_PORT:-0}
+        protocol: tcp
     volumes:
       # App source and lockfiles (hot reload + lock sync)
       - ./backend/app:/app/app
@@ -66,13 +72,26 @@ services:
       - ./backend/.venv:/app/.venv
       # Shared logs directory
       - ./logs:/logs
-    # Make venv/sync best-effort so the server still starts, then run uvicorn.
+    # Deterministic, pinned runtime venv flow; then start uvicorn with reload.
     command: >
-      sh -lc "
-        uv venv >/dev/null 2>&1 || true &&
-        uv sync --frozen || uv sync || true &&
-        exec uv run uvicorn app.bootstrap:asgi --host 0.0.0.0 --port 8000 --reload --log-config /app/uvicorn-log.json
+      sh -c "
+        set -ex
+        echo '--- [Backend] Step 1: Ensuring virtual environment exists ---'
+        uv venv --python python3.12
+
+        echo '--- [Backend] Step 2: Syncing dependencies ---'
+        uv sync --frozen || uv sync
+
+        echo '--- [Backend] Step 3: Starting Uvicorn server (with reload and asyncio loop) ---'
+        # Forcing the asyncio event loop for stability in Docker.
+        exec /app/.venv/bin/uvicorn app.bootstrap:asgi --host 0.0.0.0 --port 8000 --reload --loop asyncio --log-config /app/uvicorn-log.json
       "
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://127.0.0.1:8000/api/hello"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 10s
 
   frontend:
     build:
@@ -81,7 +100,7 @@ services:
       log-perms:
         condition: service_completed_successfully
       backend:
-        condition: service_started
+        condition: service_healthy
     # Preflight step:
     # - Pin pnpm store/virtual store (must match Dockerfile/.npmrc).
     # - Reinstall if node_modules is missing OR metadata is stale vs lockfile/package.json.
@@ -114,7 +133,10 @@ services:
         exec su-exec ${UID:-1000}:${GID:-1000} pnpm run dev
       "
     ports:
-      - "${HOST_FRONTEND_PORT:-5173}:5173"
+      # Publish to a free host port by default (published: 0). Override with HOST_FRONTEND_PORT if you want a fixed port.
+      - target: 5173
+        published: ${HOST_FRONTEND_PORT:-0}
+        protocol: tcp
     environment:
       - WATCHPACK_POLLING=true
     volumes:

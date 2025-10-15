@@ -282,37 +282,43 @@ def configure_logging() -> None:
             }
         },
         "handlers": {
+            "console": {
+                "class": "logging.StreamHandler",
+                "level": "INFO",
+                "formatter": "default",
+                "stream": "ext://sys.stdout",
+            },
             "backend_file": _rotating_file_handler_dict(BACKEND_ERROR_FILE, "ERROR"),
             "frontend_file": _rotating_file_handler_dict(FRONTEND_ERROR_FILE, "ERROR"),
         },
         "loggers": {
             "uvicorn": {
-                "level": "ERROR",
-                "handlers": ["backend_file"],
+                "level": "INFO",
+                "handlers": ["console", "backend_file"],
                 "propagate": False,
             },
             "uvicorn.error": {
-                "level": "ERROR",
-                "handlers": ["backend_file"],
+                "level": "INFO",
+                "handlers": ["console", "backend_file"],
                 "propagate": False,
             },
             "uvicorn.access": {
-                "level": "ERROR",
-                "handlers": ["backend_file"],
+                "level": "INFO",
+                "handlers": ["console", "backend_file"],
                 "propagate": False,
             },
             "fastapi": {
-                "level": "ERROR",
-                "handlers": ["backend_file"],
+                "level": "INFO",
+                "handlers": ["console", "backend_file"],
                 "propagate": False,
             },
             "frontend.client": {
                 "level": "ERROR",
-                "handlers": ["frontend_file"],
+                "handlers": ["console", "frontend_file"],
                 "propagate": False,
             },
         },
-        "root": {"level": "ERROR", "handlers": ["backend_file"]},
+        "root": {"level": "INFO", "handlers": ["console", "backend_file"]},
     }
 
     for name in ("", "uvicorn", "uvicorn.error", "uvicorn.access", "fastapi", "frontend.client"):

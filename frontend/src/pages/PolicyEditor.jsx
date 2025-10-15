@@ -83,7 +83,7 @@ export default function PolicyEditor() {
       border: `1px solid ${theme.primary}`,
       borderRadius: '8px',
       cursor: 'pointer',
-      transition: 'background-color 0.2s, color 0.2s',
+      transition: 'background-color 0.2s, color 0.2s, opacity 0.2s, border-color 0.2s',
     },
     header: {
       textAlign: 'center',
@@ -120,6 +120,11 @@ export default function PolicyEditor() {
       marginBottom: '1rem',
       flexWrap: 'wrap',
     },
+    restoreContainer: {
+      display: 'flex',
+      justifyContent: 'center',
+      marginBottom: '1.5rem',
+    },
     buttonContainer: {
       display: 'flex',
       justifyContent: 'center',
@@ -154,11 +159,6 @@ export default function PolicyEditor() {
         </div>
       )}
       <div style={styles.topBar}>
-        {arePoliciesDifferent && (
-          <button style={styles.restoreButton} onClick={handleRestoreDefaults}>
-            Restore Actual 2026 Rates
-          </button>
-        )}
       </div>
       <header style={styles.header}>
         <h1 style={styles.title}>Policy Editor & Revenue Forecaster</h1>
@@ -169,6 +169,23 @@ export default function PolicyEditor() {
       <main className="content-card" style={styles.contentCard}>
         {policy ? (
           <>
+            <div style={styles.restoreContainer}>
+              <button
+                style={{
+                  ...styles.restoreButton,
+                  ...(!arePoliciesDifferent && {
+                    cursor: 'not-allowed',
+                    opacity: 0.5,
+                    color: theme.textSecondary,
+                    borderColor: theme.border,
+                  }),
+                }}
+                onClick={handleRestoreDefaults}
+                disabled={!arePoliciesDifferent}
+              >
+                Restore Actual 2026 Rates
+              </button>
+            </div>
             <div style={styles.policyGrid}>
               {Object.keys(policy).sort().map((className) => (
                 <PolicyTiers
