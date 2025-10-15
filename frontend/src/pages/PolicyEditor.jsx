@@ -171,7 +171,7 @@ export default function PolicyEditor() {
                   onClick={handleCalculate}
                   disabled={isLoading}
                 >
-                  {isLoading ? 'Calculating...' : 'Calculate Revenue'}
+                  Calculate Revenue
                 </button>
                 {isLoading && <Spinner />}
               </div>
