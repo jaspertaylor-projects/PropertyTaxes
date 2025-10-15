@@ -4,8 +4,31 @@
 // Exported To: ./index.js, ../pages/PolicyEditor.jsx, ../pages/AppealsEditor.jsx
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
+// Helper to load policy from localStorage
+const loadPolicyFromStorage = () => {
+  try {
+    const serializedPolicy = localStorage.getItem('mauiForecastPolicy');
+    if (serializedPolicy === null) return null;
+    return JSON.parse(serializedPolicy);
+  } catch (e) {
+    console.error("Could not load policy from local storage", e);
+    return null;
+  }
+};
+
+// Helper to save policy to localStorage
+const savePolicyToStorage = (policy) => {
+  try {
+    const serializedPolicy = JSON.stringify(policy);
+    localStorage.setItem('mauiForecastPolicy', serializedPolicy);
+  } catch (e) {
+    console.error("Could not save policy to local storage", e);
+  }
+};
+
 const initialState = {
-  policy: null,
+  policy: loadPolicyFromStorage(),
+  defaultPolicy: null,
   appeals: {},
   exemptions: {},
   results: null,
@@ -41,11 +64,20 @@ const forecastSlice = createSlice({
   reducers: {
     updatePolicy: (state, action) => {
       const { className, policy } = action.payload;
-      state.policy[className] = policy;
+      if (state.policy) {
+        state.policy[className] = policy;
+        savePolicyToStorage(state.policy);
+      }
     },
     updateAppeal: (state, action) => {
       const { className, value } = action.payload;
       state.appeals[className] = value;
+    },
+    restoreDefaultPolicy: (state) => {
+      if (state.defaultPolicy) {
+        state.policy = state.defaultPolicy;
+        savePolicyToStorage(state.policy);
+      }
     },
   },
   extraReducers: (builder) => {
@@ -55,7 +87,10 @@ const forecastSlice = createSlice({
       })
       .addCase(fetchDefaultPolicy.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        state.policy = action.payload;
+        state.defaultPolicy = action.payload;
+        if (state.policy === null) {
+          state.policy = action.payload;
+        }
       })
       .addCase(fetchDefaultPolicy.rejected, (state, action) => {
         state.status = 'failed';
@@ -88,6 +123,6 @@ const forecastSlice = createSlice({
   },
 });
 
-export const { updatePolicy, updateAppeal } = forecastSlice.actions;
+export const { updatePolicy, updateAppeal, restoreDefaultPolicy } = forecastSlice.actions;
 
 export default forecastSlice.reducer;

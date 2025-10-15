@@ -13,23 +13,22 @@ import {
   updatePolicy,
   calculateForecast,
   fetchDefaults,
+  restoreDefaultPolicy,
 } from '../store/forecastSlice.js';
 
 export default function PolicyEditor() {
   const dispatch = useDispatch();
-  const { policy, appeals, results, status, error } = useSelector((state) => state.forecast) || {};
+  const { policy, defaultPolicy, appeals, results, status, error } = useSelector((state) => state.forecast) || {};
   const [comparisonYear, setComparisonYear] = useState('None');
   const [applyExemptionAverage, setApplyExemptionAverage] = useState(false);
   const isLoading = status === 'loading';
 
   useEffect(() => {
-    if (!policy) {
-      dispatch(fetchDefaultPolicy());
-    }
+    dispatch(fetchDefaultPolicy());
     if (!appeals || Object.keys(appeals).length === 0) {
       dispatch(fetchDefaults());
     }
-  }, [dispatch, policy, appeals]);
+  }, [dispatch]);
 
   const handlePolicyChange = (className, newPolicy) => {
     dispatch(updatePolicy({ className, policy: newPolicy }));
@@ -49,7 +48,31 @@ export default function PolicyEditor() {
     }
   };
 
+  const handleRestoreDefaults = () => {
+    dispatch(restoreDefaultPolicy());
+  };
+
+  const arePoliciesDifferent = policy && defaultPolicy && JSON.stringify(policy) !== JSON.stringify(defaultPolicy);
+
   const styles = {
+    topBar: {
+      display: 'flex',
+      justifyContent: 'flex-end',
+      padding: '0.5rem 2rem',
+      minHeight: '50px', // Reserve space to avoid layout shift
+      alignItems: 'center',
+    },
+    restoreButton: {
+      padding: '8px 16px',
+      fontSize: '0.9em',
+      fontWeight: 'bold',
+      color: theme.primary,
+      backgroundColor: 'transparent',
+      border: `1px solid ${theme.primary}`,
+      borderRadius: '8px',
+      cursor: 'pointer',
+      transition: 'background-color 0.2s, color 0.2s',
+    },
     header: {
       textAlign: 'center',
       marginBottom: '2rem',
@@ -112,6 +135,13 @@ export default function PolicyEditor() {
 
   return (
     <div>
+      <div style={styles.topBar}>
+        {arePoliciesDifferent && (
+          <button style={styles.restoreButton} onClick={handleRestoreDefaults}>
+            Restore Actual 2026 Rates
+          </button>
+        )}
+      </div>
       <header style={styles.header}>
         <h1 style={styles.title}>Policy Editor & Revenue Forecaster</h1>
         <p style={styles.subtitle}>
