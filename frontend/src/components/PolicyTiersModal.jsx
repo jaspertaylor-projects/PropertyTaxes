@@ -14,25 +14,47 @@ export default function PolicyTiersModal({ className, policy, onPolicyChange, on
   };
 
   const addTier = () => {
-    const newTiers = policy.tiers ? [...policy.tiers] : [];
-    const lastTier = newTiers[newTiers.length - 1];
-    
-    if (lastTier) {
-        const prevLimit = newTiers.length > 1 ? newTiers[newTiers.length - 2].up_to : 0;
-        lastTier.up_to = (lastTier.up_to || prevLimit) + 1000000;
+    const currentTiers = policy.tiers || [];
+
+    // If there are no tiers, create the first one from the existing flat rate.
+    if (currentTiers.length === 0) {
+      const newTier = { rate: policy.rate || 10, up_to: null };
+      onPolicyChange(className, { ...policy, tiers: [newTier] });
+      return;
     }
 
+    const lastTierIndex = currentTiers.length - 1;
+    const lastTier = currentTiers[lastTierIndex];
+    const prevLimit = lastTierIndex > 0 ? currentTiers[lastTierIndex - 1].up_to : 0;
+
+    // Create an updated version of the tier that was previously last
+    const updatedLastTier = {
+      ...lastTier,
+      up_to: prevLimit + 1000000,
+    };
+
+    // Create the new tier that will become the last one
     const newTier = {
-      rate: lastTier ? lastTier.rate : 10,
+      rate: lastTier.rate,
       up_to: null,
     };
+
+    // Construct the new tiers array without mutation
+    const newTiers = [
+      ...currentTiers.slice(0, lastTierIndex),
+      updatedLastTier,
+      newTier,
+    ];
     
-    onPolicyChange(className, { ...policy, tiers: [...newTiers, newTier] });
+    onPolicyChange(className, { ...policy, tiers: newTiers });
   };
 
   const removeTier = (tierIndex) => {
-    let newTiers = [...policy.tiers];
-    const removedTier = newTiers.splice(tierIndex, 1)[0];
+    const currentTiers = policy.tiers;
+    const removedTier = currentTiers[tierIndex];
+
+    // Create new array without the removed tier
+    let newTiers = currentTiers.filter((_, i) => i !== tierIndex);
 
     if (newTiers.length === 0) {
       onPolicyChange(className, { rate: removedTier.rate || 0, tiers: [] });
@@ -40,7 +62,11 @@ export default function PolicyTiersModal({ className, policy, onPolicyChange, on
       return;
     }
     
-    newTiers[newTiers.length - 1].up_to = null;
+    const lastTierIndex = newTiers.length - 1;
+    const lastTier = newTiers[lastTierIndex];
+
+    // Ensure the new last tier is a new object with up_to: null to trigger re-render
+    newTiers[lastTierIndex] = { ...lastTier, up_to: null };
 
     onPolicyChange(className, { ...policy, tiers: newTiers });
   };
