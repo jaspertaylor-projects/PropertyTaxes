@@ -5,7 +5,7 @@
 import React from 'react';
 import theme from '../theme.js';
 
-export default function RevenueSummary({ results, comparisonYear, appeals }) {
+export default function RevenueSummary({ results, comparisonYear, appeals, onComparisonYearChange, applyExemptionAverage, onExemptionChange }) {
   if (!results) {
     return null;
   }
@@ -21,31 +21,30 @@ export default function RevenueSummary({ results, comparisonYear, appeals }) {
   const formatNumber = (value) =>
     new Intl.NumberFormat('en-US').format(value);
 
-  const formatDifference = (current, comparison) => {
-    if (comparison === undefined || comparison === null) return null;
-    const diff = current - comparison;
-    const percentage = comparison === 0 ? (diff > 0 ? 100 : 0) : (diff / comparison) * 100;
-    const formattedDiff = formatCurrency(diff);
-    const sign = diff >= 0 ? '+' : '';
-    const color = diff > 0 ? theme.success : diff < 0 ? theme.error : theme.textSecondary;
-
-    return (
-      <span style={{ color, whiteSpace: 'nowrap' }}>
-        {sign}{formattedDiff} ({percentage.toFixed(1)}%)
-      </span>
-    );
-  };
-
   const styles = {
     container: {
       marginTop: '2rem',
       overflowX: 'auto',
     },
-    title: {
-      color: theme.primary,
+    header: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: '1rem',
       marginBottom: '1rem',
       borderBottom: `2px solid ${theme.border}`,
       paddingBottom: '0.5rem',
+    },
+    title: {
+      color: theme.primary,
+      margin: 0,
+    },
+    controls: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '1.5rem',
+      flexWrap: 'wrap',
     },
     table: {
       width: '100%',
@@ -74,6 +73,31 @@ export default function RevenueSummary({ results, comparisonYear, appeals }) {
       fontWeight: 'bold',
       backgroundColor: theme.background,
     },
+    selectLabel: {
+      color: theme.textSecondary,
+      fontWeight: 'bold',
+    },
+    select: {
+      padding: '8px 12px',
+      borderRadius: '6px',
+      border: `1px solid ${theme.border}`,
+      backgroundColor: theme.background,
+      color: theme.textPrimary,
+      fontSize: '0.9em',
+    },
+    toggleContainer: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.5rem',
+    },
+    toggleLabel: {
+      color: theme.textSecondary,
+      fontWeight: 'bold',
+      cursor: 'pointer',
+    },
+    toggleSwitch: {
+      cursor: 'pointer',
+    },
   };
 
   const { results_by_class, totals, comparison_data } = results;
@@ -95,17 +119,44 @@ export default function RevenueSummary({ results, comparisonYear, appeals }) {
         <td style={{...styles.td, color: theme.error}}>{formatCurrency(appealValue)}</td>
         <td style={styles.td}>{formatCurrency(data.certified_value)}</td>
         {comparison && <td style={styles.td}>{comparisonRow ? formatCurrency(comparisonRow.certified_value) : 'N/A'}</td>}
-        {comparison && <td style={styles.td}>{comparisonRow ? formatDifference(data.certified_value, comparisonRow.certified_value) : 'N/A'}</td>}
         <td style={styles.td}>{formatCurrency(data.certified_revenue)}</td>
         {comparison && <td style={styles.td}>{comparisonRow ? formatCurrency(comparisonRow.certified_revenue) : 'N/A'}</td>}
-        {comparison && <td style={styles.td}>{comparisonRow ? formatDifference(data.certified_revenue, comparisonRow.certified_revenue) : 'N/A'}</td>}
       </tr>
     );
   };
 
   return (
     <div style={styles.container}>
-      <h2 style={styles.title}>Revenue Forecast {comparison ? `vs. ${comparisonYear}` : ''}</h2>
+      <div style={styles.header}>
+        <h2 style={styles.title}>Revenue Forecast {comparison ? `vs. ${comparisonYear}` : ''}</h2>
+        <div style={styles.controls}>
+          <div style={styles.toggleContainer}>
+            <input
+              type="checkbox"
+              id="exemption-toggle"
+              style={styles.toggleSwitch}
+              checked={applyExemptionAverage}
+              onChange={(e) => onExemptionChange(e.target.checked)}
+            />
+            <label htmlFor="exemption-toggle" style={styles.toggleLabel}>
+              Apply Exemptions
+            </label>
+          </div>
+          <div>
+            <label htmlFor="comparison-year" style={styles.selectLabel}>Compare To: </label>
+            <select 
+              id="comparison-year"
+              style={styles.select}
+              value={comparisonYear}
+              onChange={(e) => onComparisonYearChange(e.target.value)}
+            >
+              <option value="None">None</option>
+              <option value="FY 2025">FY 2025</option>
+              <option value="FY 2026">FY 2026</option>
+            </select>
+          </div>
+        </div>
+      </div>
       <table style={styles.table}>
         <thead>
           <tr>
@@ -115,10 +166,8 @@ export default function RevenueSummary({ results, comparisonYear, appeals }) {
             <th style={{...styles.th, textAlign: 'right'}}>Appeal Value</th>
             <th style={{...styles.th, textAlign: 'right'}}>Forecast Value (Net)</th>
             {comparison && <th style={{...styles.th, textAlign: 'right'}}>{comparisonYear} Value</th>}
-            {comparison && <th style={{...styles.th, textAlign: 'right'}}>Value Diff.</th>}
             <th style={{...styles.th, textAlign: 'right'}}>Forecast Revenue (Net)</th>
             {comparison && <th style={{...styles.th, textAlign: 'right'}}>{comparisonYear} Revenue</th>}
-            {comparison && <th style={{...styles.th, textAlign: 'right'}}>Revenue Diff.</th>}
           </tr>
         </thead>
         <tbody>

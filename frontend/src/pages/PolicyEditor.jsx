@@ -41,6 +41,14 @@ export default function PolicyEditor() {
     }
   };
 
+  const handleExemptionChange = (isChecked) => {
+    setApplyExemptionAverage(isChecked);
+    // Automatically recalculate if results are already being displayed
+    if (policy && appeals && results) {
+      dispatch(calculateForecast({ policy, appeals, applyExemptionAverage: isChecked }));
+    }
+  };
+
   const styles = {
     header: {
       textAlign: 'center',
@@ -100,31 +108,6 @@ export default function PolicyEditor() {
       marginTop: '1rem',
       textAlign: 'center',
     },
-    selectLabel: {
-      color: theme.textSecondary,
-      fontWeight: 'bold',
-    },
-    select: {
-      padding: '8px 12px',
-      borderRadius: '6px',
-      border: `1px solid ${theme.border}`,
-      backgroundColor: theme.background,
-      color: theme.textPrimary,
-      fontSize: '0.9em',
-    },
-    toggleContainer: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '0.5rem',
-    },
-    toggleLabel: {
-      color: theme.textSecondary,
-      fontWeight: 'bold',
-      cursor: 'pointer',
-    },
-    toggleSwitch: {
-      cursor: 'pointer',
-    },
   };
 
   return (
@@ -162,31 +145,6 @@ export default function PolicyEditor() {
                 </button>
                 {isLoading && <Spinner />}
               </div>
-              <div style={styles.toggleContainer}>
-                <input
-                  type="checkbox"
-                  id="exemption-toggle"
-                  style={styles.toggleSwitch}
-                  checked={applyExemptionAverage}
-                  onChange={(e) => setApplyExemptionAverage(e.target.checked)}
-                />
-                <label htmlFor="exemption-toggle" style={styles.toggleLabel}>
-                  Apply Exemptions
-                </label>
-              </div>
-              <div>
-                <label htmlFor="comparison-year" style={styles.selectLabel}>Compare To: </label>
-                <select 
-                  id="comparison-year"
-                  style={styles.select}
-                  value={comparisonYear}
-                  onChange={(e) => setComparisonYear(e.target.value)}
-                >
-                  <option value="None">None</option>
-                  <option value="FY 2025">FY 2025</option>
-                  <option value="FY 2026">FY 2026</option>
-                </select>
-              </div>
             </div>
           </>
         ) : (
@@ -197,7 +155,14 @@ export default function PolicyEditor() {
 
         {error && <p style={styles.errorMessage}>{error}</p>}
 
-        <RevenueSummary results={results} comparisonYear={comparisonYear} appeals={appeals} />
+        <RevenueSummary 
+          results={results} 
+          appeals={appeals} 
+          comparisonYear={comparisonYear}
+          onComparisonYearChange={setComparisonYear}
+          applyExemptionAverage={applyExemptionAverage}
+          onExemptionChange={handleExemptionChange}
+        />
       </main>
     </div>
   );
