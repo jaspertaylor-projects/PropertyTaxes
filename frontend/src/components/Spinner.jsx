@@ -1,19 +1,19 @@
 // frontend/src/components/Spinner.jsx
 // Purpose: A simple SVG loading spinner component.
 // Imports From: ../theme.js
-// Exported To: ../pages/PolicyEditor.jsx
+// Exported To: ../pages/PolicyEditor.jsx, ../components/RevenueSummary.jsx
 import React from 'react';
 import theme from '../theme.js';
 
-export default function Spinner() {
+export default function Spinner({ size = '24px' }) {
   const styles = {
     spinner: {
       animation: 'rotate 1s linear infinite',
-      width: '24px',
-      height: '24px',
+      width: size,
+      height: size,
     },
     path: {
-      stroke: theme.primary,
+      stroke: theme.success || '#28a745', // Use theme success color or fallback to green
       strokeLinecap: 'round',
       animation: 'dash 1.5s ease-in-out infinite',
     },

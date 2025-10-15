@@ -162,6 +162,7 @@ export default function PolicyEditor() {
           onComparisonYearChange={setComparisonYear}
           applyExemptionAverage={applyExemptionAverage}
           onExemptionChange={handleExemptionChange}
+          isLoading={isLoading}
         />
       </main>
     </div>

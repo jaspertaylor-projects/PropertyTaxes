@@ -1,11 +1,12 @@
 // frontend/src/components/RevenueSummary.jsx
 // Purpose: Displays the calculated revenue forecast in a table.
-// Imports From: ../theme.js
+// Imports From: ../theme.js, ./Spinner.jsx
 // Exported To: ../pages/PolicyEditor.jsx
 import React from 'react';
 import theme from '../theme.js';
+import Spinner from './Spinner.jsx';
 
-export default function RevenueSummary({ results, comparisonYear, appeals, onComparisonYearChange, applyExemptionAverage, onExemptionChange }) {
+export default function RevenueSummary({ results, appeals, comparisonYear, onComparisonYearChange, applyExemptionAverage, onExemptionChange, isLoading }) {
   if (!results) {
     return null;
   }
@@ -24,7 +25,24 @@ export default function RevenueSummary({ results, comparisonYear, appeals, onCom
   const styles = {
     container: {
       marginTop: '2rem',
+      position: 'relative',
+    },
+    contentWrapper: {
+      transition: 'filter 0.2s ease-in-out, opacity 0.2s ease-in-out',
+      filter: isLoading ? 'blur(4px)' : 'none',
+      opacity: isLoading ? 0.6 : 1,
       overflowX: 'auto',
+    },
+    loadingOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 10,
     },
     header: {
       display: 'flex',
@@ -127,56 +145,63 @@ export default function RevenueSummary({ results, comparisonYear, appeals, onCom
 
   return (
     <div style={styles.container}>
-      <div style={styles.header}>
-        <h2 style={styles.title}>Revenue Forecast {comparison ? `vs. ${comparisonYear}` : ''}</h2>
-        <div style={styles.controls}>
-          <div style={styles.toggleContainer}>
-            <input
-              type="checkbox"
-              id="exemption-toggle"
-              style={styles.toggleSwitch}
-              checked={applyExemptionAverage}
-              onChange={(e) => onExemptionChange(e.target.checked)}
-            />
-            <label htmlFor="exemption-toggle" style={styles.toggleLabel}>
-              Apply Exemptions
-            </label>
-          </div>
-          <div>
-            <label htmlFor="comparison-year" style={styles.selectLabel}>Compare To: </label>
-            <select 
-              id="comparison-year"
-              style={styles.select}
-              value={comparisonYear}
-              onChange={(e) => onComparisonYearChange(e.target.value)}
-            >
-              <option value="None">None</option>
-              <option value="FY 2025">FY 2025</option>
-              <option value="FY 2026">FY 2026</option>
-            </select>
+      {isLoading && (
+        <div style={styles.loadingOverlay}>
+          <Spinner size="48px" />
+        </div>
+      )}
+      <div style={styles.contentWrapper}>
+        <div style={styles.header}>
+          <h2 style={styles.title}>Revenue Forecast {comparison ? `vs. ${comparisonYear}` : ''}</h2>
+          <div style={styles.controls}>
+            <div style={styles.toggleContainer}>
+              <input
+                type="checkbox"
+                id="exemption-toggle"
+                style={styles.toggleSwitch}
+                checked={applyExemptionAverage}
+                onChange={(e) => onExemptionChange(e.target.checked)}
+              />
+              <label htmlFor="exemption-toggle" style={styles.toggleLabel}>
+                Apply Exemptions
+              </label>
+            </div>
+            <div>
+              <label htmlFor="comparison-year" style={styles.selectLabel}>Compare To: </label>
+              <select 
+                id="comparison-year"
+                style={styles.select}
+                value={comparisonYear}
+                onChange={(e) => onComparisonYearChange(e.target.value)}
+              >
+                <option value="None">None</option>
+                <option value="FY 2025">FY 2025</option>
+                <option value="FY 2026">FY 2026</option>
+              </select>
+            </div>
           </div>
         </div>
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              <th style={{...styles.th, textAlign: 'left'}}>Tax Class</th>
+              <th style={{...styles.th, textAlign: 'right'}}>Parcels</th>
+              <th style={{...styles.th, textAlign: 'right'}}>Exemptions</th>
+              <th style={{...styles.th, textAlign: 'right'}}>Appeal Value</th>
+              <th style={{...styles.th, textAlign: 'right'}}>Forecast Value (Net)</th>
+              {comparison && <th style={{...styles.th, textAlign: 'right'}}>{comparisonYear} Value</th>}
+              <th style={{...styles.th, textAlign: 'right'}}>Forecast Revenue (Net)</th>
+              {comparison && <th style={{...styles.th, textAlign: 'right'}}>{comparisonYear} Revenue</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {sortedClasses.map((className) => renderRow(className, results_by_class[className]))}
+          </tbody>
+          <tfoot style={styles.tfoot}>
+            {renderRow('Total', totals, true)}
+          </tfoot>
+        </table>
       </div>
-      <table style={styles.table}>
-        <thead>
-          <tr>
-            <th style={{...styles.th, textAlign: 'left'}}>Tax Class</th>
-            <th style={{...styles.th, textAlign: 'right'}}>Parcels</th>
-            <th style={{...styles.th, textAlign: 'right'}}>Exemptions</th>
-            <th style={{...styles.th, textAlign: 'right'}}>Appeal Value</th>
-            <th style={{...styles.th, textAlign: 'right'}}>Forecast Value (Net)</th>
-            {comparison && <th style={{...styles.th, textAlign: 'right'}}>{comparisonYear} Value</th>}
-            <th style={{...styles.th, textAlign: 'right'}}>Forecast Revenue (Net)</th>
-            {comparison && <th style={{...styles.th, textAlign: 'right'}}>{comparisonYear} Revenue</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {sortedClasses.map((className) => renderRow(className, results_by_class[className]))}
-        </tbody>
-        <tfoot style={styles.tfoot}>
-          {renderRow('Total', totals, true)}
-        </tfoot>
-      </table>
     </div>
   );
 }

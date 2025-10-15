@@ -75,7 +75,6 @@ const forecastSlice = createSlice({
       })
       .addCase(calculateForecast.pending, (state) => {
         state.status = 'loading';
-        state.results = null;
         state.error = null;
       })
       .addCase(calculateForecast.fulfilled, (state, action) => {
