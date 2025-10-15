@@ -55,6 +55,18 @@ export default function PolicyEditor() {
   const arePoliciesDifferent = policy && defaultPolicy && JSON.stringify(policy) !== JSON.stringify(defaultPolicy);
 
   const styles = {
+    spinnerOverlay: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(255, 255, 255, 0.8)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000,
+    },
     topBar: {
       display: 'flex',
       justifyContent: 'flex-end',
@@ -113,6 +125,7 @@ export default function PolicyEditor() {
       justifyContent: 'center',
       alignItems: 'center',
       gap: '1rem',
+      minHeight: '48px', // Reserve space to prevent layout shift
     },
     calculateButton: {
       padding: '12px 24px',
@@ -135,6 +148,11 @@ export default function PolicyEditor() {
 
   return (
     <div>
+      {isLoading && (
+        <div style={styles.spinnerOverlay}>
+          <Spinner size="64px" />
+        </div>
+      )}
       <div style={styles.topBar}>
         {arePoliciesDifferent && (
           <button style={styles.restoreButton} onClick={handleRestoreDefaults}>
@@ -173,13 +191,12 @@ export default function PolicyEditor() {
                 >
                   Calculate Revenue
                 </button>
-                {isLoading && <Spinner />}
               </div>
             </div>
           </>
         ) : (
           <div style={styles.buttonContainer}>
-            {isLoading ? <Spinner /> : <p>Loading policy editor...</p>}
+            {!isLoading && !error && <p>Loading policy editor...</p>}
           </div>
         )}
 
