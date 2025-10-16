@@ -55,11 +55,6 @@ export default function Navbar() {
       </NavLink>
       <ul style={styles.navList}>
         <li>
-          <NavLink to="/" style={getNavLinkStyle}>
-            Data Inspector
-          </NavLink>
-        </li>
-        <li>
           <NavLink to="/policy-editor" style={getNavLinkStyle}>
             Policy Editor
           </NavLink>

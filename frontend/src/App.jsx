@@ -1,13 +1,12 @@
 // frontend/src/App.jsx
-// Purpose: Serves as the main application layout, including routing and global styles.
-// Imports From: ./App.css, ./theme.js, ./components/Navbar.jsx, ./pages/DataInspector.jsx, ./pages/PolicyEditor.jsx, ./pages/AppealsEditor.jsx
+// Purpose: Main application layout and routing. Sets Policy Editor as the home page and wires navigation.
+// Imports From: ./App.css, ./theme.js, ./components/Navbar.jsx, ./pages/PolicyEditor.jsx, ./pages/AppealsEditor.jsx
 // Exported To: ./main.jsx
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import './App.css';
 import theme from './theme.js';
 import Navbar from './components/Navbar.jsx';
-import DataInspector from './pages/DataInspector.jsx';
 import PolicyEditor from './pages/PolicyEditor.jsx';
 import AppealsEditor from './pages/AppealsEditor.jsx';
 
@@ -21,7 +20,7 @@ export default function App() {
     pageContent: {
       padding: '2rem',
       boxSizing: 'border-box',
-    }
+    },
   };
 
   return (
@@ -29,7 +28,7 @@ export default function App() {
       <Navbar />
       <div className="page-content" style={styles.pageContent}>
         <Routes>
-          <Route path="/" element={<DataInspector />} />
+          <Route path="/" element={<PolicyEditor />} />
           <Route path="/policy-editor" element={<PolicyEditor />} />
           <Route path="/appeals-editor" element={<AppealsEditor />} />
         </Routes>
