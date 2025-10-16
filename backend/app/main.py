@@ -473,7 +473,7 @@ class Tier(BaseModel):
 
 class TaxClassPolicy(BaseModel):
     code: int
-    rate: Optional[float]
+    rate: Optional[float] = None
     tiers: List[Tier]
 
 
@@ -899,3 +899,4 @@ def log_frontend_error(payload: FrontendErrorPayload, request: Request) -> dict[
         payload.stack,
     )
     return {"status": "ok"}
+

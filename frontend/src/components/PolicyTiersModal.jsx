@@ -103,7 +103,7 @@ export default function PolicyTiersModal({ className, policy, onPolicyChange, on
     // Ensure the new last tier is a new object with up_to: null to trigger re-render
     newTiers[lastTierIndex] = { ...lastTier, up_to: null };
 
-    onPolicyChange(className, { ...policy, tiers: newTiers });
+    onPolicyChange(className, { ...policy, rate: null, tiers: newTiers });
   };
 
   const formatLimit = (value) => {
