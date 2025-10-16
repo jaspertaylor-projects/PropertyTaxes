@@ -9,7 +9,18 @@ import theme from '../theme.js';
 export default function PolicyTiersModal({ className, policy, onPolicyChange, onClose }) {
   const handleTierChange = (tierIndex, field, value) => {
     const newTiers = [...policy.tiers];
-    newTiers[tierIndex] = { ...newTiers[tierIndex], [field]: parseFloat(value) || 0 };
+
+    let parsedValue;
+    if (field === 'up_to') {
+      // 'up_to' must be an integer.
+      parsedValue = parseInt(value, 10);
+    } else {
+      // 'rate' can be a float.
+      parsedValue = parseFloat(value);
+    }
+
+    // If parsing results in NaN (e.g., from an empty string), fallback to 0.
+    newTiers[tierIndex] = { ...newTiers[tierIndex], [field]: isNaN(parsedValue) ? 0 : parsedValue };
 
     // Sort tiers to ensure they are always in ascending order of 'up_to'
     const sortedTiers = newTiers.sort((a, b) => {

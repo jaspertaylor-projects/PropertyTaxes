@@ -54,7 +54,18 @@ export const calculateForecast = createAsyncThunk('forecast/calculateForecast', 
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ policy, appeals, applyExemptionAverage }),
   });
-  if (!response.ok) throw new Error('Calculation failed on the server.');
+  if (!response.ok) {
+    let errorDetail = 'Calculation failed on the server.';
+    try {
+        const errorData = await response.json();
+        if (errorData && errorData.detail) {
+            errorDetail = errorData.detail;
+        }
+    } catch (e) {
+        // Response was not JSON or was empty. Keep default error.
+    }
+    throw new Error(errorDetail);
+  }
   return response.json();
 });
 

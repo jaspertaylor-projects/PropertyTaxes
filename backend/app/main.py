@@ -799,8 +799,8 @@ def calculate_revenue_forecast(request: ForecastRequest) -> Any:
             "comparison_data": FY_COMPARISON_DATA,
         }
     except Exception as e:
-        logging.getLogger("fastapi").error("Revenue calculation failed: %s", e)
-        raise HTTPException(status_code=500, detail="An error occurred during revenue calculation.")
+        logging.getLogger("fastapi").error("Revenue calculation failed: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"An error occurred during revenue calculation: {str(e)}")
 
 
 # ---- Misc --------------------------------------------------------------------
