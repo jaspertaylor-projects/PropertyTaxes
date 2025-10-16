@@ -701,29 +701,29 @@ def calculate_revenue_forecast(request: ForecastRequest) -> Any:
             values = df.loc[mask, "net_taxable_value"]
 
             if class_policy.tiers:
-                # Sort tiers by their 'up_to' value to ensure correct progressive calculation.
-                # Tiers with 'up_to: null' are treated as infinity and placed at the end.
+                # Sort tiers by their 'up_to' value to ensure correct marginal calculation.
+                # Tiers with 'up_to: null' are treated as infinity and come last.
                 sorted_tiers = sorted(
                     class_policy.tiers,
                     key=lambda t: t.up_to if t.up_to is not None else float("inf"),
                 )
 
                 tax = pd.Series(0.0, index=values.index)
-                remaining_values = values.copy()
                 lower_bound = 0
 
                 for tier in sorted_tiers:
                     rate = tier.rate / 1000.0
                     upper_bound = tier.up_to if tier.up_to is not None else float("inf")
-                    bracket_width = upper_bound - lower_bound
 
-                    value_in_bracket = remaining_values.clip(upper=bracket_width)
-                    tax += value_in_bracket * rate
+                    if upper_bound <= lower_bound:
+                        continue  # Skip invalid/out-of-order tiers
 
-                    remaining_values = (remaining_values - bracket_width).clip(lower=0)
+                    # Determine the amount of value that falls within this tier's bracket for each property.
+                    taxable_in_bracket = (values - lower_bound).clip(
+                        lower=0, upper=(upper_bound - lower_bound)
+                    )
 
-                    if remaining_values.sum() == 0:
-                        break
+                    tax += taxable_in_bracket * rate
 
                     lower_bound = upper_bound
 
