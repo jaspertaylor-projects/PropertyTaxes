@@ -41,7 +41,7 @@ export default function PolicyTiersModal({ className, policy, onPolicyChange, on
       console.error("addTier was called with no tiers, which should not happen.");
       // As a fallback, create a first tier, clearing the flat rate.
       const newTier = { rate: policy.rate || 10, up_to: null };
-      onPolicyChange(className, { ...policy, rate: undefined, tiers: [newTier] });
+      onPolicyChange(className, { ...policy, rate: null, tiers: [newTier] });
       return;
     }
 
@@ -78,7 +78,7 @@ export default function PolicyTiersModal({ className, policy, onPolicyChange, on
       newTier,
     ];
     
-    onPolicyChange(className, { ...policy, tiers: newTiers });
+    onPolicyChange(className, { ...policy, rate: null, tiers: newTiers });
   };
 
   const removeTier = (tierIndex) => {
@@ -89,7 +89,7 @@ export default function PolicyTiersModal({ className, policy, onPolicyChange, on
     let newTiers = currentTiers.filter((_, i) => i !== tierIndex);
 
     if (newTiers.length === 0) {
-      onPolicyChange(className, { rate: removedTier.rate || 0, tiers: [] });
+      onPolicyChange(className, { ...policy, rate: removedTier.rate || 0, tiers: [] });
       onClose();
       return;
     }
