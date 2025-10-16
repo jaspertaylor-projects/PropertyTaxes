@@ -544,7 +544,7 @@ app.add_middleware(
 
 # ---- Endpoints: Dataframes ----------------------------------------------------
 @app.get("/api/dataframes")
-de list_dataframes() -> list[str]:
+def list_dataframes() -> list[str]:
     """Returns a list of available dataframe names."""
     return list(DATASETS.keys())
 

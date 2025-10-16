@@ -10,13 +10,16 @@ export default function PolicyTiersModal({ className, policy, onPolicyChange, on
   const handleTierChange = (tierIndex, field, value) => {
     const newTiers = [...policy.tiers];
 
+    // Sanitize input by removing commas, which can cause parsing errors (e.g., parseInt("1,000") -> 1)
+    const cleanValue = String(value).replace(/,/g, '');
+
     let parsedValue;
     if (field === 'up_to') {
       // 'up_to' must be an integer.
-      parsedValue = parseInt(value, 10);
+      parsedValue = parseInt(cleanValue, 10);
     } else {
       // 'rate' can be a float.
-      parsedValue = parseFloat(value);
+      parsedValue = parseFloat(cleanValue);
     }
 
     // If parsing results in NaN (e.g., from an empty string), fallback to 0.
@@ -241,7 +244,7 @@ export default function PolicyTiersModal({ className, policy, onPolicyChange, on
                       <input
                         type="number"
                         style={styles.input}
-                        value={tier.up_to || ''}
+                        value={tier.up_to ?? ''}
                         onChange={(e) => handleTierChange(index, 'up_to', e.target.value)}
                         step="10000"
                       />
@@ -253,7 +256,7 @@ export default function PolicyTiersModal({ className, policy, onPolicyChange, on
                 <input
                   type="number"
                   style={styles.input}
-                  value={tier.rate}
+                  value={tier.rate ?? ''}
                   onChange={(e) => handleTierChange(index, 'rate', e.target.value)}
                   step="0.01"
                 />
