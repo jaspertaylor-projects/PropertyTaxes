@@ -10,7 +10,15 @@ export default function PolicyTiersModal({ className, policy, onPolicyChange, on
   const handleTierChange = (tierIndex, field, value) => {
     const newTiers = [...policy.tiers];
     newTiers[tierIndex] = { ...newTiers[tierIndex], [field]: parseFloat(value) || 0 };
-    onPolicyChange(className, { ...policy, tiers: newTiers });
+
+    // Sort tiers to ensure they are always in ascending order of 'up_to'
+    const sortedTiers = newTiers.sort((a, b) => {
+      if (a.up_to === null) return 1; // null (infinity) should be last
+      if (b.up_to === null) return -1;
+      return a.up_to - b.up_to;
+    });
+
+    onPolicyChange(className, { ...policy, tiers: sortedTiers });
   };
 
   const addTier = () => {
@@ -26,11 +34,18 @@ export default function PolicyTiersModal({ className, policy, onPolicyChange, on
       return;
     }
 
-    const lastTierIndex = currentTiers.length - 1;
-    const lastTier = currentTiers[lastTierIndex];
+    // Ensure we are working with sorted tiers before adding a new one
+    const sortedCurrentTiers = [...currentTiers].sort((a, b) => {
+      if (a.up_to === null) return 1;
+      if (b.up_to === null) return -1;
+      return a.up_to - b.up_to;
+    });
+
+    const lastTierIndex = sortedCurrentTiers.length - 1;
+    const lastTier = sortedCurrentTiers[lastTierIndex];
     
     // The lower bound for the last tier is the upper bound of the tier before it.
-    const lowerBoundOfLastTier = lastTierIndex > 0 ? currentTiers[lastTierIndex - 1].up_to : 0;
+    const lowerBoundOfLastTier = lastTierIndex > 0 ? sortedCurrentTiers[lastTierIndex - 1].up_to : 0;
 
     // The tier that was previously last now needs an upper bound.
     // We'll set a default that is 1M higher than its lower bound.
@@ -47,7 +62,7 @@ export default function PolicyTiersModal({ className, policy, onPolicyChange, on
     };
 
     const newTiers = [
-      ...currentTiers.slice(0, lastTierIndex),
+      ...sortedCurrentTiers.slice(0, lastTierIndex),
       updatedLastTier,
       newTier,
     ];

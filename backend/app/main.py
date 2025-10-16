@@ -701,11 +701,18 @@ def calculate_revenue_forecast(request: ForecastRequest) -> Any:
             values = df.loc[mask, "net_taxable_value"]
 
             if class_policy.tiers:
+                # Sort tiers by their 'up_to' value to ensure correct progressive calculation.
+                # Tiers with 'up_to: null' are treated as infinity and placed at the end.
+                sorted_tiers = sorted(
+                    class_policy.tiers,
+                    key=lambda t: t.up_to if t.up_to is not None else float("inf"),
+                )
+
                 tax = pd.Series(0.0, index=values.index)
                 remaining_values = values.copy()
                 lower_bound = 0
 
-                for tier in class_policy.tiers:
+                for tier in sorted_tiers:
                     rate = tier.rate / 1000.0
                     upper_bound = tier.up_to if tier.up_to is not None else float("inf")
                     bracket_width = upper_bound - lower_bound
