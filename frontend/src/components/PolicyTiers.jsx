@@ -1,5 +1,5 @@
 // frontend/src/components/PolicyTiers.jsx
-// Purpose: Renders an editable form for a single tax class policy, including rates and tier limits.
+// Purpose: Renders an editable form for a single tax class policy, including rates and tier limits. Labels show lower bound exclusive and upper bound inclusive.
 // Imports From: ../theme.js, ./PolicyTiersModal.jsx
 // Exported To: ../pages/PolicyEditor.jsx
 import React, { useState } from 'react';
@@ -20,11 +20,10 @@ export default function PolicyTiers({ className, policy, onPolicyChange }) {
   };
 
   const handleAddTiers = () => {
-    // When adding tiers for the first time, create a default first tier
     const newPolicy = {
-        ...policy,
-        rate: undefined, // remove flat rate
-        tiers: [{ rate: policy.rate || 0, up_to: null }]
+      ...policy,
+      rate: undefined,
+      tiers: [{ rate: policy.rate || 0, up_to: null }],
     };
     onPolicyChange(className, newPolicy);
     setIsModalOpen(true);
@@ -87,28 +86,22 @@ export default function PolicyTiers({ className, policy, onPolicyChange }) {
     },
     prefix: {
       color: theme.textSecondary,
-    }
+    },
   };
 
   const hasTiers = policy.tiers && policy.tiers.length > 0;
 
   return (
     <>
-      <div style={styles.card}>
-        <div style={styles.headerContainer}>
+      <div style={styles.card} className="policy-tiers-card">
+        <div style={styles.headerContainer} className="policy-tiers-header">
           <h3 style={styles.header}>{className}</h3>
           {hasTiers ? (
-            <button 
-              onClick={() => setIsModalOpen(true)} 
-              style={styles.editButton}
-            >
+            <button onClick={() => setIsModalOpen(true)} style={styles.editButton} className="policy-tiers-edit-button">
               Edit Tiers
             </button>
           ) : (
-            <button
-              onClick={handleAddTiers}
-              style={styles.editButton}
-            >
+            <button onClick={handleAddTiers} style={styles.editButton} className="policy-tiers-add-button">
               Add Tiers
             </button>
           )}
@@ -117,11 +110,17 @@ export default function PolicyTiers({ className, policy, onPolicyChange }) {
         {hasTiers ? (
           policy.tiers.map((tier, index) => {
             const prevTierLimit = index > 0 ? policy.tiers[index - 1].up_to : 0;
+            const isLast = tier.up_to == null;
+            const labelText = (() => {
+              if (isLast) return `Tier ${index + 1} (over ${formatLimit(prevTierLimit)})`;
+              if (index === 0) return `Tier ${index + 1} (up to ${formatLimit(tier.up_to)})`;
+              const displayLower = (prevTierLimit || 0) + 1;
+              return `Tier ${index + 1} (${formatLimit(displayLower)} to ${formatLimit(tier.up_to)})`;
+            })();
             return (
-              <div key={index} style={styles.inputGroup}>
-                <label style={styles.label}>
-                  {`Tier ${index + 1} `}
-                  {tier.up_to ? `(> ${formatLimit(prevTierLimit)} to ${formatLimit(tier.up_to)})` : `(> ${formatLimit(prevTierLimit)})`}
+              <div key={index} style={styles.inputGroup} className="policy-tiers-input-group">
+                <label style={styles.label} className="policy-tiers-rate-label">
+                  {labelText}
                 </label>
                 <span style={styles.prefix}>$</span>
                 <input
@@ -136,7 +135,7 @@ export default function PolicyTiers({ className, policy, onPolicyChange }) {
             );
           })
         ) : (
-          <div style={styles.inputGroup}>
+          <div style={styles.inputGroup} className="policy-tiers-flat-rate-group">
             <label style={styles.label}>Flat Rate</label>
             <span style={styles.prefix}>$</span>
             <input

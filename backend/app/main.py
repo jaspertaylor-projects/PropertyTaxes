@@ -717,7 +717,15 @@ def get_multiclass_behavior() -> dict[str, Any]:
 # ---- Endpoints: Forecast ------------------------------------------------------
 @app.post("/api/revenue-forecast", response_model=ForecastResponse)
 def calculate_revenue_forecast(request: ForecastRequest) -> Any:
-    """Calculates a revenue forecast based on the provided tax policy."""
+    """Calculates a revenue forecast based on the provided tax policy.
+
+    Bracket convention: lower bound is exclusive, upper bound is inclusive. For example, with
+    thresholds [0, 1,300,000], [1,300,001, 3,000,000], ... the amount at exactly the upper
+    threshold is taxed in the lower tier, and the next dollar above a tier's upper bound is taxed
+    in the following tier. The implementation below uses a continuous allocation where the taxable
+    amount per tier is (value - lower_bound) clipped to [0, upper_bound - lower_bound], which
+    achieves the desired exclusivity/inclusivity without off-by-one issues.
+    """
     logger = logging.getLogger(__name__)
     logger.info("--- Starting Revenue Forecast Calculation ---")
     logger.info(
@@ -799,7 +807,7 @@ def calculate_revenue_forecast(request: ForecastRequest) -> Any:
                     rate = tier.rate / 1000.0
                     upper_bound = tier.up_to if tier.up_to is not None else float("inf")
                     logger.info(
-                        "      - Tier %d: Rate=%.4f for values between %s and %s",
+                        "      - Tier %d: Rate=%.4f for values between %s and %s (lower exclusive, upper inclusive)",
                         i + 1,
                         tier.rate,
                         f"${lower_bound:,.0f}",
@@ -810,6 +818,7 @@ def calculate_revenue_forecast(request: ForecastRequest) -> Any:
                         logger.warning("      - Tier %d is invalid or out of order, skipping.", i + 1)
                         continue
 
+                    # lower bound exclusive, upper bound inclusive
                     taxable_in_bracket = (values - lower_bound).clip(
                         lower=0, upper=(upper_bound - lower_bound)
                     )
@@ -817,14 +826,16 @@ def calculate_revenue_forecast(request: ForecastRequest) -> Any:
                     tax += tier_tax_series
 
                     # Summary for tier revenue reporting (pre-adjustment)
-                    lb_for_label = lower_bound
+                    lb_for_label = int(lower_bound)
                     ub_for_label: Optional[int] = None if upper_bound == float("inf") else int(upper_bound)
                     if upper_bound == float("inf"):
                         label = f"Tier {i + 1}: over ${lb_for_label:,.0f}"
                     elif lower_bound == 0:
                         label = f"Tier {i + 1}: up to ${int(upper_bound):,}"
                     else:
-                        label = f"Tier {i + 1}: > ${lb_for_label:,.0f} to ${int(upper_bound):,}"
+                        # Display exclusive lower bound as lower_bound + 1 for clarity in dollar terms
+                        display_lower = lb_for_label + 1
+                        label = f"Tier {i + 1}: ${display_lower:,.0f} to ${int(upper_bound):,}"
 
                     class_tier_rows.append(
                         {
@@ -1037,8 +1048,8 @@ def get_tier_parcel_counts(request: TierParcelCountsRequest) -> TierParcelCounts
     df["net_taxable_value"] = (df["total_assessed_value"] - df["total_exemption"]).clip(lower=0)
 
     def _counts_for_class(values: pd.Series, thresholds_list: List[Optional[int]]) -> List[int]:
+        # lower bound exclusive, upper bound inclusive for all but the first tier which is [0, upper]
         counts: List[int] = []
-        lower = None
         for i, upper in enumerate(thresholds_list):
             if i == 0:
                 if upper is None:

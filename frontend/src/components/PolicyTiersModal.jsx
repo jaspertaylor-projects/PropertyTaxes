@@ -1,5 +1,5 @@
 // frontend/src/components/PolicyTiersModal.jsx
-// Purpose: Provides a modal UI for editing, adding, and removing policy tiers for a tax class.
+// Purpose: Provides a modal UI for editing, adding, and removing policy tiers for a tax class. Labels show lower bound exclusive and upper bound inclusive.
 // Imports From: ../theme.js
 // Exported To: ../components/PolicyTiers.jsx
 import React from 'react';
@@ -10,24 +10,19 @@ export default function PolicyTiersModal({ className, policy, onPolicyChange, on
   const handleTierChange = (tierIndex, field, value) => {
     const newTiers = [...policy.tiers];
 
-    // Sanitize input by removing commas, which can cause parsing errors (e.g., parseInt("1,000") -> 1)
     const cleanValue = String(value).replace(/,/g, '');
 
     let parsedValue;
     if (field === 'up_to') {
-      // 'up_to' must be an integer.
       parsedValue = parseInt(cleanValue, 10);
     } else {
-      // 'rate' can be a float.
       parsedValue = parseFloat(cleanValue);
     }
 
-    // If parsing results in NaN (e.g., from an empty string), fallback to 0.
     newTiers[tierIndex] = { ...newTiers[tierIndex], [field]: isNaN(parsedValue) ? 0 : parsedValue };
 
-    // Sort tiers to ensure they are always in ascending order of 'up_to'
     const sortedTiers = newTiers.sort((a, b) => {
-      if (a.up_to === null) return 1; // null (infinity) should be last
+      if (a.up_to === null) return 1;
       if (b.up_to === null) return -1;
       return a.up_to - b.up_to;
     });
@@ -38,17 +33,12 @@ export default function PolicyTiersModal({ className, policy, onPolicyChange, on
   const addTier = () => {
     const currentTiers = policy.tiers || [];
 
-    // This function is called from the modal to add a new tier to an existing list.
-    // The parent component ensures there's at least one tier before opening the modal.
     if (currentTiers.length === 0) {
-      console.error("addTier was called with no tiers, which should not happen.");
-      // As a fallback, create a first tier, clearing the flat rate.
       const newTier = { rate: policy.rate || 10, up_to: null };
       onPolicyChange(className, { ...policy, rate: null, tiers: [newTier] });
       return;
     }
 
-    // Ensure we are working with sorted tiers before adding a new one
     const sortedCurrentTiers = [...currentTiers].sort((a, b) => {
       if (a.up_to === null) return 1;
       if (b.up_to === null) return -1;
@@ -57,19 +47,14 @@ export default function PolicyTiersModal({ className, policy, onPolicyChange, on
 
     const lastTierIndex = sortedCurrentTiers.length - 1;
     const lastTier = sortedCurrentTiers[lastTierIndex];
-    
-    // The lower bound for the last tier is the upper bound of the tier before it.
+
     const lowerBoundOfLastTier = lastTierIndex > 0 ? sortedCurrentTiers[lastTierIndex - 1].up_to : 0;
 
-    // The tier that was previously last now needs an upper bound.
-    // We'll set a default that is 1M higher than its lower bound.
     const updatedLastTier = {
       ...lastTier,
       up_to: (lowerBoundOfLastTier || 0) + 1000000,
     };
 
-    // The new tier becomes the last one, with no upper bound (infinity).
-    // It inherits the rate from the previously last tier.
     const newTier = {
       rate: lastTier.rate,
       up_to: null,
@@ -80,7 +65,7 @@ export default function PolicyTiersModal({ className, policy, onPolicyChange, on
       updatedLastTier,
       newTier,
     ];
-    
+
     onPolicyChange(className, { ...policy, rate: null, tiers: newTiers });
   };
 
@@ -88,7 +73,6 @@ export default function PolicyTiersModal({ className, policy, onPolicyChange, on
     const currentTiers = policy.tiers;
     const removedTier = currentTiers[tierIndex];
 
-    // Create new array without the removed tier
     let newTiers = currentTiers.filter((_, i) => i !== tierIndex);
 
     if (newTiers.length === 0) {
@@ -96,11 +80,10 @@ export default function PolicyTiersModal({ className, policy, onPolicyChange, on
       onClose();
       return;
     }
-    
+
     const lastTierIndex = newTiers.length - 1;
     const lastTier = newTiers[lastTierIndex];
 
-    // Ensure the new last tier is a new object with up_to: null to trigger re-render
     newTiers[lastTierIndex] = { ...lastTier, up_to: null };
 
     onPolicyChange(className, { ...policy, rate: null, tiers: newTiers });
@@ -172,35 +155,35 @@ export default function PolicyTiersModal({ className, policy, onPolicyChange, on
       color: theme.textSecondary,
     },
     tierActions: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px'
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
     },
     actionButton: {
-        background: 'none',
-        border: 'none',
-        cursor: 'pointer',
-        padding: 0,
-        display: 'flex',
-        alignItems: 'center',
+      background: 'none',
+      border: 'none',
+      cursor: 'pointer',
+      padding: 0,
+      display: 'flex',
+      alignItems: 'center',
     },
     footer: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginTop: '1.5rem',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: '1.5rem',
     },
     addButton: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        padding: '8px 16px',
-        fontSize: '0.9em',
-        backgroundColor: theme.background,
-        color: theme.primary,
-        border: `1px solid ${theme.primary}`,
-        borderRadius: '6px',
-        cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      padding: '8px 16px',
+      fontSize: '0.9em',
+      backgroundColor: theme.background,
+      color: theme.primary,
+      border: `1px solid ${theme.primary}`,
+      borderRadius: '6px',
+      cursor: 'pointer',
     },
     doneButton: {
       padding: '10px 20px',
@@ -217,30 +200,34 @@ export default function PolicyTiersModal({ className, policy, onPolicyChange, on
   const tiers = policy.tiers || [];
 
   return (
-    <div style={styles.modalOverlay} onClick={onClose}>
-      <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-        <div style={styles.modalHeader}>
+    <div style={styles.modalOverlay} onClick={onClose} className="policy-tiers-modal-overlay">
+      <div style={styles.modalContent} onClick={(e) => e.stopPropagation()} className="policy-tiers-modal-content">
+        <div style={styles.modalHeader} className="policy-tiers-modal-header">
           <h2 style={styles.modalTitle}>Edit Tiers for {className}</h2>
-          <button onClick={onClose} style={styles.closeButton}>
+          <button onClick={onClose} style={styles.closeButton} className="policy-tiers-modal-close">
             <XCircle color={theme.textSecondary} />
           </button>
         </div>
-        
+
         <div>
           {tiers.map((tier, index) => {
             const prevTierLimit = index > 0 ? tiers[index - 1].up_to : 0;
             const isLastTier = index === tiers.length - 1;
 
             return (
-              <div key={index} style={styles.inputGroup}>
+              <div key={index} style={styles.inputGroup} className="policy-tiers-modal-input-group">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: '1 1 auto' }}>
-                  <label style={{...styles.label, flex: '0 0 auto', minWidth: 'auto'}}>
-                    {`Tier ${index + 1} (> ${formatLimit(prevTierLimit)} to`}
-                  </label>
                   {isLastTier ? (
-                    <span style={{...styles.label, flex: '0 0 auto', minWidth: 'auto', color: theme.textPrimary, marginLeft: '8px'}}> Infinity)</span>
+                    <label style={{ ...styles.label, flex: '0 0 auto', minWidth: 'auto' }}>
+                      {`Tier ${index + 1} (over ${formatLimit(prevTierLimit)})`}
+                    </label>
                   ) : (
                     <>
+                      <label style={{ ...styles.label, flex: '0 0 auto', minWidth: 'auto' }}>
+                        {index === 0
+                          ? `Tier ${index + 1} (up to`
+                          : `Tier ${index + 1} (${formatLimit((prevTierLimit || 0) + 1)} to`}
+                      </label>
                       <input
                         type="number"
                         style={styles.input}
@@ -262,20 +249,20 @@ export default function PolicyTiersModal({ className, policy, onPolicyChange, on
                 />
                 <span style={styles.prefix}>per $1k</span>
                 <div style={styles.tierActions}>
-                    <button onClick={() => removeTier(index)} style={styles.actionButton}>
-                        <XCircle size={20} color={theme.error} />
-                    </button>
+                  <button onClick={() => removeTier(index)} style={styles.actionButton} className="policy-tiers-modal-remove-tier">
+                    <XCircle size={20} color={theme.error} />
+                  </button>
                 </div>
               </div>
             );
           })}
         </div>
 
-        <div style={styles.footer}>
-            <button onClick={addTier} style={styles.addButton}>
-                <PlusCircle size={18} /> Add Tier
-            </button>
-            <button onClick={onClose} style={styles.doneButton}>Done</button>
+        <div style={styles.footer} className="policy-tiers-modal-footer">
+          <button onClick={addTier} style={styles.addButton} className="policy-tiers-modal-add-tier">
+            <PlusCircle size={18} /> Add Tier
+          </button>
+          <button onClick={onClose} style={styles.doneButton} className="policy-tiers-modal-done-button">Done</button>
         </div>
       </div>
     </div>
