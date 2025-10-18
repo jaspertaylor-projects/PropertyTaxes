@@ -1,12 +1,12 @@
 // frontend/src/components/RevenueSummary.jsx
-// Purpose: Displays the calculated revenue forecast in a table, including tier-level revenue breakdown per class.
+// Purpose: Displays the calculated revenue forecast in a table, including tier-level revenue breakdown per class and optional tier parcel counts if policy matches FY 2026 tiers.
 // Imports From: ../theme.js, ./Spinner.jsx
 // Exported To: ../pages/PolicyEditor.jsx
 import React from 'react';
 import theme from '../theme.js';
 import Spinner from './Spinner.jsx';
 
-export default function RevenueSummary({ results, appeals, comparisonYear, onComparisonYearChange, applyExemptionAverage, onExemptionChange, isLoading }) {
+export default function RevenueSummary({ results, appeals, comparisonYear, onComparisonYearChange, applyExemptionAverage, onExemptionChange, isLoading, tierCounts }) {
   if (!results) {
     return null;
   }
@@ -19,8 +19,7 @@ export default function RevenueSummary({ results, appeals, comparisonYear, onCom
       maximumFractionDigits: 0,
     }).format(value || 0);
 
-  const formatNumber = (value) =>
-    new Intl.NumberFormat('en-US').format(value || 0);
+  const formatNumber = (value) => new Intl.NumberFormat('en-US').format(value || 0);
 
   const styles = {
     container: {
@@ -68,7 +67,7 @@ export default function RevenueSummary({ results, appeals, comparisonYear, onCom
       width: '100%',
       borderCollapse: 'collapse',
       fontSize: '0.9rem',
-      minWidth: '900px',
+      minWidth: '1050px',
     },
     th: {
       backgroundColor: theme.secondary,
@@ -130,24 +129,35 @@ export default function RevenueSummary({ results, appeals, comparisonYear, onCom
   const { results_by_class, totals, comparison_data } = results;
   const sortedClasses = Object.keys(results_by_class).sort();
   const comparison = comparisonYear !== 'None' && comparison_data ? comparison_data[comparisonYear] : null;
+  const showTierParcelCounts = Boolean(tierCounts && tierCounts.allowed && tierCounts.classes);
 
   const renderRow = (className, data, totalRow = false) => {
     const comparisonRow = comparison ? (totalRow ? comparison.totals : comparison[className]) : null;
-    const appealValue = totalRow ? 
-      Object.values(appeals || {}).reduce((sum, val) => sum + (val || 0), 0) :
-      (appeals && appeals[className]) || 0;
+    const appealValue = totalRow
+      ? Object.values(appeals || {}).reduce((sum, val) => sum + (val || 0), 0)
+      : (appeals && appeals[className]) || 0;
     const exemptionCount = data.exemption_count ?? 0;
 
     return (
       <tr key={className} className="revenue-summary-class-row">
-        <td style={{...styles.td, ...styles.tdLeft}}>{className}</td>
+        <td style={{ ...styles.td, ...styles.tdLeft }}>{className}</td>
         <td style={styles.td}>{formatNumber(data.parcel_count)}</td>
-        <td style={{...styles.td, color: theme.textSecondary}}>{formatNumber(exemptionCount)}</td>
-        <td style={{...styles.td, color: theme.error}}>{formatCurrency(appealValue)}</td>
+        <td style={{ ...styles.td, color: theme.textSecondary }}>{formatNumber(exemptionCount)}</td>
+        <td style={{ ...styles.td, color: theme.error }}>{formatCurrency(appealValue)}</td>
         <td style={styles.td}>{formatCurrency(data.certified_value)}</td>
-        {comparison && <td style={styles.td}>{comparisonRow ? formatCurrency(comparisonRow.certified_value) : 'N/A'}</td>}
+        {comparison && (
+          <td style={styles.td}>
+            {comparisonRow ? formatCurrency(comparisonRow.certified_value) : 'N/A'}
+          </td>
+        )}
+        {showTierParcelCounts && <td style={styles.td}></td>}
+        {showTierParcelCounts && <td style={styles.td}></td>}
         <td style={styles.td}>{formatCurrency(data.certified_revenue)}</td>
-        {comparison && <td style={styles.td}>{comparisonRow ? formatCurrency(comparisonRow.certified_revenue) : 'N/A'}</td>}
+        {comparison && (
+          <td style={styles.td}>
+            {comparisonRow ? formatCurrency(comparisonRow.certified_revenue) : 'N/A'}
+          </td>
+        )}
       </tr>
     );
   };
@@ -156,15 +166,25 @@ export default function RevenueSummary({ results, appeals, comparisonYear, onCom
     const tiers = data.tier_breakdown || [];
     if (!tiers.length) return null;
 
+    const tierInfo = showTierParcelCounts && tierCounts.classes[className] ? tierCounts.classes[className] : null;
+    const fyCounts = tierInfo ? tierInfo.fy2026_tier_counts : [];
+    const dataCounts = tierInfo ? tierInfo.data_tier_counts : [];
+
     return tiers.map((tier, idx) => (
       <tr key={`${className}-tier-${idx}`} className="revenue-summary-tier-row" style={styles.tierRow}>
-        <td style={{...styles.td, ...styles.tierLabelCell}}>↳ {tier.label}</td>
+        <td style={{ ...styles.td, ...styles.tierLabelCell }}>↳ {tier.label}</td>
         <td style={styles.td}></td>
         <td style={styles.td}></td>
         <td style={styles.td}></td>
         <td style={styles.td}></td>
         {comparison && <td style={styles.td}></td>}
-        <td style={{...styles.td, fontWeight: 600}}>{formatCurrency(tier.revenue)}</td>
+        {showTierParcelCounts && (
+          <td style={{ ...styles.td, fontWeight: 600 }}>{fyCounts[idx] != null ? formatNumber(fyCounts[idx]) : ''}</td>
+        )}
+        {showTierParcelCounts && (
+          <td style={{ ...styles.td, fontWeight: 600 }}>{dataCounts[idx] != null ? formatNumber(dataCounts[idx]) : ''}</td>
+        )}
+        <td style={{ ...styles.td, fontWeight: 600 }}>{formatCurrency(tier.revenue)}</td>
         {comparison && <td style={styles.td}></td>}
       </tr>
     ));
@@ -194,8 +214,10 @@ export default function RevenueSummary({ results, appeals, comparisonYear, onCom
               </label>
             </div>
             <div className="revenue-summary-compare-select">
-              <label htmlFor="comparison-year" style={styles.selectLabel}>Compare To: </label>
-              <select 
+              <label htmlFor="comparison-year" style={styles.selectLabel}>
+                Compare To:{' '}
+              </label>
+              <select
                 id="comparison-year"
                 style={styles.select}
                 value={comparisonYear}
@@ -211,14 +233,24 @@ export default function RevenueSummary({ results, appeals, comparisonYear, onCom
         <table style={styles.table} className="revenue-summary-table">
           <thead>
             <tr>
-              <th style={{...styles.th, textAlign: 'left'}}>Tax Class</th>
-              <th style={{...styles.th, textAlign: 'right'}}>Parcels</th>
-              <th style={{...styles.th, textAlign: 'right'}}>Exemptions</th>
-              <th style={{...styles.th, textAlign: 'right'}}>Appeal Value</th>
-              <th style={{...styles.th, textAlign: 'right'}}>Forecast Value (Net)</th>
-              {comparison && <th style={{...styles.th, textAlign: 'right'}}>{comparisonYear} Value</th>}
-              <th style={{...styles.th, textAlign: 'right'}}>Forecast Revenue (Net)</th>
-              {comparison && <th style={{...styles.th, textAlign: 'right'}}>{comparisonYear} Revenue</th>}
+              <th style={{ ...styles.th, textAlign: 'left' }}>Tax Class</th>
+              <th style={{ ...styles.th, textAlign: 'right' }}>Parcels</th>
+              <th style={{ ...styles.th, textAlign: 'right' }}>Exemptions</th>
+              <th style={{ ...styles.th, textAlign: 'right' }}>Appeal Value</th>
+              <th style={{ ...styles.th, textAlign: 'right' }}>Forecast Value (Net)</th>
+              {comparison && (
+                <th style={{ ...styles.th, textAlign: 'right' }}>{comparisonYear} Value</th>
+              )}
+              {showTierParcelCounts && (
+                <th style={{ ...styles.th, textAlign: 'right' }}>FY26 Tier Parcels</th>
+              )}
+              {showTierParcelCounts && (
+                <th style={{ ...styles.th, textAlign: 'right' }}>Data Tier Parcels</th>
+              )}
+              <th style={{ ...styles.th, textAlign: 'right' }}>Forecast Revenue (Net)</th>
+              {comparison && (
+                <th style={{ ...styles.th, textAlign: 'right' }}>{comparisonYear} Revenue</th>
+              )}
             </tr>
           </thead>
           <tbody>

@@ -465,6 +465,24 @@ FY2026_PARCEL_COUNTS = {
     "OWNER-OCCUPIED": 27792,
 }
 
+# FY 2026 Tier thresholds by class (from handout): last tier is open-ended (None)
+FY2026_TIER_THRESHOLDS: dict[str, List[Optional[int]]] = {
+    "NON-OWNER-OCCUPIED": [1_000_000, 3_000_000, None],
+    "COMMERCIALIZED RESIDENTIAL": [1_000_000, 3_000_000, None],
+    "TVR-STRH": [1_000_000, 3_000_000, None],
+    "LONG TERM RENTAL": [1_300_000, 3_000_000, None],
+    "OWNER-OCCUPIED": [1_300_000, 4_500_000, None],
+}
+
+# FY 2026 Tier parcel counts from the handout (second number in each tier row)
+FY2026_TIER_HANDOUT_PARCEL_COUNTS: dict[str, List[int]] = {
+    "NON-OWNER-OCCUPIED": [8602, 4958, 1221],
+    "COMMERCIALIZED RESIDENTIAL": [19, 109, 21],
+    "TVR-STRH": [5321, 5933, 1246],
+    "LONG TERM RENTAL": [3600, 510, 53],
+    "OWNER-OCCUPIED": [23902, 3706, 184],
+}
+
 
 class Tier(BaseModel):
     up_to: Optional[int]
@@ -503,6 +521,23 @@ class ForecastResponse(BaseModel):
     results_by_class: dict[str, RevenueResult]
     totals: RevenueResult
     comparison_data: dict[str, Any]
+
+
+class TierParcelCountsRequest(BaseModel):
+    policy: dict[str, TaxClassPolicy]
+
+
+class TierParcelCountsByClass(BaseModel):
+    thresholds: List[Optional[int]]
+    fy2026_tier_counts: List[int]
+    data_tier_counts: List[int]
+    data_total_count: int
+
+
+class TierParcelCountsResponse(BaseModel):
+    allowed: bool
+    reason: Optional[str] = None
+    classes: Optional[dict[str, TierParcelCountsByClass]] = None
 
 
 # ---- FastAPI App --------------------------------------------------------------
@@ -908,7 +943,7 @@ def calculate_revenue_forecast(request: ForecastRequest) -> Any:
                 adjusted_revenue = float(result_data["certified_revenue"]) * reduction_factor
 
                 logger.info(
-                    "    - Appeal Deduction (50%% of appeal, capped at value): %s",
+                    "    - Appeal Deduction (50% of appeal, capped at value): %s",
                     f"${appeal_deduction:,.2f}",
                 )
                 logger.info("    - Reduction Factor: %.4f", reduction_factor)
@@ -964,6 +999,78 @@ def calculate_revenue_forecast(request: ForecastRequest) -> Any:
         )
 
 
+# ---- Tier Parcel Counts (FY2026 thresholds only) -----------------------------
+@app.post("/api/tier-parcel-counts", response_model=TierParcelCountsResponse)
+def get_tier_parcel_counts(request: TierParcelCountsRequest) -> TierParcelCountsResponse:
+    """
+    Returns tier parcel counts per class when and only when the provided policy's tiers exactly
+    match the official FY 2026 tier thresholds per class. Counts include FY26 handout tier counts
+    and current-data tier counts using net taxable value.
+    """
+    logger = logging.getLogger(__name__)
+
+    # Validate policy tiers match FY 2026 thresholds for all tiered classes we track
+    for class_name, thresholds in FY2026_TIER_THRESHOLDS.items():
+        policy = request.policy.get(class_name)
+        if policy is None:
+            reason = f"Missing '{class_name}' in policy."
+            return TierParcelCountsResponse(allowed=False, reason=reason)
+        policy_thresholds = [t.up_to for t in sorted(policy.tiers, key=lambda t: t.up_to or float("inf"))]
+        if policy_thresholds != thresholds:
+            reason = (
+                f"Tier thresholds for '{class_name}' do not match FY 2026. "
+                f"expected={thresholds} got={policy_thresholds}"
+            )
+            return TierParcelCountsResponse(allowed=False, reason=reason)
+
+    # Ensure data is available
+    if "fullasmt25" not in DATASETS:
+        raise HTTPException(status_code=503, detail="Assessment data not loaded.")
+
+    df = DATASETS["fullasmt25"].copy()
+    # Exclude disaster-affected parcels
+    df = df[(df["ASSESSED_LAND_VALUE"] > 0) | (df["ASSESSED_BUILDING_VALUE"] > 0)]
+
+    # Compute net taxable
+    df["total_assessed_value"] = df["ASSESSED_LAND_VALUE"] + df["ASSESSED_BUILDING_VALUE"]
+    df["total_exemption"] = df["LAND_EXEMPTION"] + df["BUILDING_EXEMPTION"]
+    df["net_taxable_value"] = (df["total_assessed_value"] - df["total_exemption"]).clip(lower=0)
+
+    def _counts_for_class(values: pd.Series, thresholds_list: List[Optional[int]]) -> List[int]:
+        counts: List[int] = []
+        lower = None
+        for i, upper in enumerate(thresholds_list):
+            if i == 0:
+                if upper is None:
+                    counts.append(int((values >= 0).sum()))
+                else:
+                    counts.append(int((values <= upper).sum()))
+            else:
+                prev_upper = thresholds_list[i - 1]
+                if upper is None:
+                    counts.append(int((values > (prev_upper or 0)).sum()))
+                else:
+                    counts.append(int(((values > (prev_upper or 0)) & (values <= upper)).sum()))
+        return counts
+
+    classes_payload: dict[str, TierParcelCountsByClass] = {}
+
+    for class_name, thresholds in FY2026_TIER_THRESHOLDS.items():
+        class_code = DEFAULT_POLICY[class_name]["code"]
+        mask = df["TAX_RATE_CLASS"] == class_code
+        values = df.loc[mask, "net_taxable_value"]
+        data_counts = _counts_for_class(values, thresholds)
+        fy_counts = FY2026_TIER_HANDOUT_PARCEL_COUNTS.get(class_name, [0] * len(thresholds))
+        classes_payload[class_name] = TierParcelCountsByClass(
+            thresholds=thresholds,
+            fy2026_tier_counts=fy_counts,
+            data_tier_counts=data_counts,
+            data_total_count=int(mask.sum()),
+        )
+
+    return TierParcelCountsResponse(allowed=True, classes=classes_payload)
+
+
 # ---- Misc --------------------------------------------------------------------
 @app.get("/api/hello")
 def read_root() -> dict[str, Any]:
@@ -971,7 +1078,6 @@ def read_root() -> dict[str, Any]:
         "message": "Hello from the FastAPI & Docker Coming in Hot and fresh and tasty today!!!",
         "timestamp": datetime.datetime.now().isoformat(),
     }
-
 
 
 # ---- Frontend Error Intake ----------------------------------------------------

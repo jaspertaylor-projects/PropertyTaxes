@@ -1,5 +1,5 @@
 // frontend/src/store/forecastSlice.js
-// Purpose: Manages state for policy, appeals, and revenue forecast results using Redux Toolkit.
+// Purpose: Manages state for policy, appeals, revenue forecast results, and tier parcel counts using Redux Toolkit.
 // Imports From: None
 // Exported To: ./index.js, ../pages/PolicyEditor.jsx, ../pages/AppealsEditor.jsx
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
@@ -11,7 +11,7 @@ const loadPolicyFromStorage = () => {
     if (serializedPolicy === null) return null;
     return JSON.parse(serializedPolicy);
   } catch (e) {
-    console.error("Could not load policy from local storage", e);
+    console.error('Could not load policy from local storage', e);
     return null;
   }
 };
@@ -22,7 +22,7 @@ const savePolicyToStorage = (policy) => {
     const serializedPolicy = JSON.stringify(policy);
     localStorage.setItem('mauiForecastPolicy', serializedPolicy);
   } catch (e) {
-    console.error("Could not save policy to local storage", e);
+    console.error('Could not save policy to local storage', e);
   }
 };
 
@@ -32,6 +32,7 @@ const initialState = {
   appeals: {},
   exemptions: {},
   results: null,
+  tierCounts: null,
   status: 'idle', // 'idle' | 'loading' | 'succeeded' | 'failed'
   error: null,
 };
@@ -48,26 +49,53 @@ export const fetchDefaults = createAsyncThunk('forecast/fetchDefaults', async ()
   return response.json();
 });
 
-export const calculateForecast = createAsyncThunk('forecast/calculateForecast', async ({ policy, appeals, applyExemptionAverage }) => {
-  const response = await fetch('/api/revenue-forecast', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ policy, appeals, applyExemptionAverage }),
-  });
-  if (!response.ok) {
-    let errorDetail = 'Calculation failed on the server.';
-    try {
+export const calculateForecast = createAsyncThunk(
+  'forecast/calculateForecast',
+  async ({ policy, appeals, applyExemptionAverage }) => {
+    const response = await fetch('/api/revenue-forecast', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ policy, appeals, applyExemptionAverage }),
+    });
+    if (!response.ok) {
+      let errorDetail = 'Calculation failed on the server.';
+      try {
         const errorData = await response.json();
         if (errorData && errorData.detail) {
-            errorDetail = errorData.detail;
+          errorDetail = errorData.detail;
         }
-    } catch (e) {
+      } catch (e) {
         // Response was not JSON or was empty. Keep default error.
+      }
+      throw new Error(errorDetail);
     }
-    throw new Error(errorDetail);
+    return response.json();
   }
-  return response.json();
-});
+);
+
+export const fetchTierParcelCounts = createAsyncThunk(
+  'forecast/fetchTierParcelCounts',
+  async ({ policy }) => {
+    const response = await fetch('/api/tier-parcel-counts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ policy }),
+    });
+    if (!response.ok) {
+      let errorDetail = 'Failed to fetch tier parcel counts';
+      try {
+        const errorData = await response.json();
+        if (errorData && errorData.detail) {
+          errorDetail = errorData.detail;
+        }
+      } catch (e) {
+        // ignore
+      }
+      throw new Error(errorDetail);
+    }
+    return response.json();
+  }
+);
 
 const forecastSlice = createSlice({
   name: 'forecast',
@@ -130,6 +158,15 @@ const forecastSlice = createSlice({
       .addCase(calculateForecast.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.error.message;
+      })
+      .addCase(fetchTierParcelCounts.pending, (state) => {
+        // do not change main status; tier counts are auxiliary
+      })
+      .addCase(fetchTierParcelCounts.fulfilled, (state, action) => {
+        state.tierCounts = action.payload;
+      })
+      .addCase(fetchTierParcelCounts.rejected, (state) => {
+        state.tierCounts = null;
       });
   },
 });

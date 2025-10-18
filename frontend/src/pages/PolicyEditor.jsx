@@ -14,11 +14,12 @@ import {
   calculateForecast,
   fetchDefaults,
   restoreDefaultPolicy,
+  fetchTierParcelCounts,
 } from '../store/forecastSlice.js';
 
 export default function PolicyEditor() {
   const dispatch = useDispatch();
-  const { policy, defaultPolicy, appeals, results, status, error } = useSelector((state) => state.forecast) || {};
+  const { policy, defaultPolicy, appeals, results, status, error, tierCounts } = useSelector((state) => state.forecast) || {};
   const [comparisonYear, setComparisonYear] = useState('None');
   const [applyExemptionAverage, setApplyExemptionAverage] = useState(false);
   const isLoading = status === 'loading';
@@ -37,6 +38,7 @@ export default function PolicyEditor() {
   const handleCalculate = () => {
     if (policy && appeals) {
       dispatch(calculateForecast({ policy, appeals, applyExemptionAverage }));
+      dispatch(fetchTierParcelCounts({ policy }));
     }
   };
 
@@ -45,6 +47,7 @@ export default function PolicyEditor() {
     // Automatically recalculate if results are already being displayed
     if (policy && appeals && results) {
       dispatch(calculateForecast({ policy, appeals, applyExemptionAverage: isChecked }));
+      dispatch(fetchTierParcelCounts({ policy }));
     }
   };
 
@@ -160,15 +163,14 @@ export default function PolicyEditor() {
           <Spinner size="64px" />
         </div>
       )}
-      <div style={styles.topBar}>
-      </div>
+      <div style={styles.topBar}></div>
       <header style={styles.header}>
         <h1 style={styles.title}>Policy Editor & Revenue Forecaster</h1>
         <p style={styles.subtitle}>
           Adjust tax rates and tiers to forecast revenue based on 2025 property data.
         </p>
       </header>
-      <main className="content-card" style={styles.contentCard}>
+      <main className="policy-editor-content-card" style={styles.contentCard}>
         {policy ? (
           <>
             <div style={styles.restoreContainer}>
@@ -189,14 +191,16 @@ export default function PolicyEditor() {
               </button>
             </div>
             <div style={styles.policyGrid}>
-              {Object.keys(policy).sort().map((className) => (
-                <PolicyTiers
-                  key={className}
-                  className={className}
-                  policy={policy[className]}
-                  onPolicyChange={handlePolicyChange}
-                />
-              ))}
+              {Object.keys(policy)
+                .sort()
+                .map((className) => (
+                  <PolicyTiers
+                    key={className}
+                    className={className}
+                    policy={policy[className]}
+                    onPolicyChange={handlePolicyChange}
+                  />
+                ))}
             </div>
             <div style={styles.controlsContainer}>
               <div style={styles.buttonContainer}>
@@ -221,14 +225,15 @@ export default function PolicyEditor() {
 
         {error && <p style={styles.errorMessage}>{error}</p>}
 
-        <RevenueSummary 
-          results={results} 
-          appeals={appeals} 
+        <RevenueSummary
+          results={results}
+          appeals={appeals}
           comparisonYear={comparisonYear}
           onComparisonYearChange={setComparisonYear}
           applyExemptionAverage={applyExemptionAverage}
           onExemptionChange={handleExemptionChange}
           isLoading={isLoading}
+          tierCounts={tierCounts}
         />
       </main>
     </div>
