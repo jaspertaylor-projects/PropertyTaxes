@@ -820,7 +820,7 @@ def calculate_revenue_forecast(request: ForecastRequest) -> Any:
 
                     # lower bound exclusive, upper bound inclusive
                     taxable_in_bracket = (values - lower_bound).clip(
-                        lower=0, upper=(upper_bound - lower_bound)
+                        lower=0, upper=(upper_bound + 1 - lower_bound)
                     )
                     tier_tax_series = taxable_in_bracket * rate
                     tax += tier_tax_series
@@ -847,7 +847,7 @@ def calculate_revenue_forecast(request: ForecastRequest) -> Any:
                         }
                     )
 
-                    lower_bound = upper_bound
+                    lower_bound = upper_bound + 1
 
                 df.loc[mask, "tax"] = tax
                 pre_tier_revenue[class_name] = class_tier_rows
@@ -952,11 +952,6 @@ def calculate_revenue_forecast(request: ForecastRequest) -> Any:
                 adjusted_value = original_value - appeal_deduction
                 reduction_factor = adjusted_value / original_value if original_value > 0 else 0.0
                 adjusted_revenue = float(result_data["certified_revenue"]) * reduction_factor
-
-                logger.info(
-                    "    - Appeal Deduction (50% of appeal, capped at value): %s",
-                    f"${appeal_deduction:,.2f}",
-                )
                 logger.info("    - Reduction Factor: %.4f", reduction_factor)
                 logger.info("    - Final Adjusted Value: %s", f"${adjusted_value:,.2f}")
                 logger.info("    - Final Adjusted Revenue: %s", f"${adjusted_revenue:,.2f}")
