@@ -483,11 +483,20 @@ class ForecastRequest(BaseModel):
     applyExemptionAverage: bool
 
 
+class TierRevenue(BaseModel):
+    label: str
+    lower_bound: Optional[int] = None
+    up_to: Optional[int] = None
+    rate: float
+    revenue: float
+
+
 class RevenueResult(BaseModel):
     certified_value: float
     certified_revenue: float
     parcel_count: int
     exemption_count: int
+    tier_breakdown: Optional[List[TierRevenue]] = None
 
 
 class ForecastResponse(BaseModel):
@@ -696,10 +705,16 @@ def calculate_revenue_forecast(request: ForecastRequest) -> Any:
         # Exclude disaster-affected parcels (Land Value = 0 AND Building Value = 0)
         df = df[(df["ASSESSED_LAND_VALUE"] > 0) | (df["ASSESSED_BUILDING_VALUE"] > 0)]
         disaster_excluded_rows = initial_rows - len(df)
-        logger.info("Excluded %d disaster-affected parcels. %d rows remaining.", disaster_excluded_rows, len(df))
+        logger.info(
+            "Excluded %d disaster-affected parcels. %d rows remaining.",
+            disaster_excluded_rows,
+            len(df),
+        )
 
         # Data prep: Calculate net taxable value
-        logger.info("Calculating total assessed value, total exemption, and net taxable value.")
+        logger.info(
+            "Calculating total assessed value, total exemption, and net taxable value."
+        )
         df["total_assessed_value"] = df["ASSESSED_LAND_VALUE"] + df["ASSESSED_BUILDING_VALUE"]
         df["total_exemption"] = df["LAND_EXEMPTION"] + df["BUILDING_EXEMPTION"]
         df["net_taxable_value"] = df["total_assessed_value"] - df["total_exemption"]
@@ -708,6 +723,9 @@ def calculate_revenue_forecast(request: ForecastRequest) -> Any:
 
         df["tax"] = 0.0
 
+        # Pre-compute per-class tier revenue before any adjustments
+        pre_tier_revenue: dict[str, List[dict[str, Any]]] = {}
+
         logger.info("Step 2: Applying tax policy to each class.")
         for class_name, class_policy in request.policy.items():
             class_code = class_policy.code
@@ -715,10 +733,19 @@ def calculate_revenue_forecast(request: ForecastRequest) -> Any:
 
             parcel_count_for_class = int(mask.sum())
             if not parcel_count_for_class > 0:
-                logger.info("  - Class '%s' (Code: %d): No parcels found, skipping.", class_name, class_code)
+                logger.info(
+                    "  - Class '%s' (Code: %d): No parcels found, skipping.",
+                    class_name,
+                    class_code,
+                )
                 continue
 
-            logger.info("  - Processing Class '%s' (Code: %d) for %d parcels.", class_name, class_code, parcel_count_for_class)
+            logger.info(
+                "  - Processing Class '%s' (Code: %d) for %d parcels.",
+                class_name,
+                class_code,
+                parcel_count_for_class,
+            )
 
             values = df.loc[mask, "net_taxable_value"]
 
@@ -731,6 +758,7 @@ def calculate_revenue_forecast(request: ForecastRequest) -> Any:
 
                 tax = pd.Series(0.0, index=values.index)
                 lower_bound = 0
+                class_tier_rows: List[dict[str, Any]] = []
 
                 for i, tier in enumerate(sorted_tiers):
                     rate = tier.rate / 1000.0
@@ -747,23 +775,62 @@ def calculate_revenue_forecast(request: ForecastRequest) -> Any:
                         logger.warning("      - Tier %d is invalid or out of order, skipping.", i + 1)
                         continue
 
-                    taxable_in_bracket = (values - lower_bound).clip(lower=0, upper=(upper_bound - lower_bound))
-                    tax += taxable_in_bracket * rate
+                    taxable_in_bracket = (values - lower_bound).clip(
+                        lower=0, upper=(upper_bound - lower_bound)
+                    )
+                    tier_tax_series = taxable_in_bracket * rate
+                    tax += tier_tax_series
+
+                    # Summary for tier revenue reporting (pre-adjustment)
+                    lb_for_label = lower_bound
+                    ub_for_label: Optional[int] = None if upper_bound == float("inf") else int(upper_bound)
+                    if upper_bound == float("inf"):
+                        label = f"Tier {i + 1}: over ${lb_for_label:,.0f}"
+                    elif lower_bound == 0:
+                        label = f"Tier {i + 1}: up to ${int(upper_bound):,}"
+                    else:
+                        label = f"Tier {i + 1}: > ${lb_for_label:,.0f} to ${int(upper_bound):,}"
+
+                    class_tier_rows.append(
+                        {
+                            "label": label,
+                            "lower_bound": int(lb_for_label),
+                            "up_to": ub_for_label,
+                            "rate": float(tier.rate),
+                            "revenue": float(tier_tax_series.sum()),
+                        }
+                    )
+
                     lower_bound = upper_bound
 
                 df.loc[mask, "tax"] = tax
+                pre_tier_revenue[class_name] = class_tier_rows
                 logger.info("    -> Tiered tax calculation complete for '%s'.", class_name)
 
             elif class_policy.rate is not None:
                 rate = class_policy.rate / 1000.0
                 logger.info("    -> Applying FLAT rate: %.4f", class_policy.rate)
-                df.loc[mask, "tax"] = values * rate
+                tax_series = values * rate
+                df.loc[mask, "tax"] = tax_series
+                pre_tier_revenue[class_name] = [
+                    {
+                        "label": "Flat Rate",
+                        "lower_bound": None,
+                        "up_to": None,
+                        "rate": float(class_policy.rate),
+                        "revenue": float(tax_series.sum()),
+                    }
+                ]
                 logger.info("    -> Flat rate tax calculation complete for '%s'.", class_name)
             else:
-                logger.warning("    -> Class '%s' has no tiers and no flat rate. Tax will be 0.", class_name)
+                logger.warning(
+                    "    -> Class '%s' has no tiers and no flat rate. Tax will be 0.",
+                    class_name,
+                )
+                pre_tier_revenue[class_name] = []
 
         logger.info("Step 3: Aggregating results by tax class.")
-        results: dict[str, dict[str, float | int]] = {}
+        results: dict[str, dict[str, float | int | list | None]] = {}
         grouped = df.groupby("TAX_RATE_CLASS")
 
         for class_code, group_df in grouped:
@@ -785,33 +852,54 @@ def calculate_revenue_forecast(request: ForecastRequest) -> Any:
             logger.info("    - Pre-adjustment Value: %s", f"${certified_value:,.2f}")
             logger.info("    - Pre-adjustment Revenue: %s", f"${certified_revenue:,.2f}")
 
+            tier_rows = pre_tier_revenue.get(class_name, [])
+
+            # Apply exemption average proportionally across the class (not per tier counts)
+            exemption_adjustment_factor = 1.0
             if request.applyExemptionAverage and data_parcel_count > 0:
                 non_exempt_count = data_parcel_count - exemption_count
-                adjustment_factor = non_exempt_count / data_parcel_count
-                logger.info("    - Applying Exemption Average Adjustment Factor: %.4f", adjustment_factor)
-                certified_value *= adjustment_factor
-                certified_revenue *= adjustment_factor
+                exemption_adjustment_factor = (
+                    non_exempt_count / data_parcel_count if data_parcel_count else 1.0
+                )
+                logger.info(
+                    "    - Applying Exemption Average Adjustment Factor: %.4f",
+                    exemption_adjustment_factor,
+                )
+                certified_value *= exemption_adjustment_factor
+                certified_revenue *= exemption_adjustment_factor
                 logger.info("    - Post-exemption Value: %s", f"${certified_value:,.2f}")
                 logger.info("    - Post-exemption Revenue: %s", f"${certified_revenue:,.2f}")
             else:
                 logger.info("    - Skipping Exemption Average Adjustment.")
+
+            # Scale tier revenues by exemption adjustment factor only
+            scaled_tier_rows = [
+                {
+                    **tr,
+                    "revenue": float(tr.get("revenue", 0.0)) * float(exemption_adjustment_factor),
+                }
+                for tr in tier_rows
+            ]
 
             results[class_name] = {
                 "certified_value": certified_value,
                 "certified_revenue": certified_revenue,
                 "parcel_count": data_parcel_count,
                 "exemption_count": exemption_count,
+                "tier_breakdown": scaled_tier_rows,
             }
 
         logger.info("Step 4: Applying appeal deductions.")
-        adjusted_results: dict[str, dict[str, float | int]] = {}
+        adjusted_results: dict[str, dict[str, float | int | list | None]] = {}
         for class_name, result_data in results.items():
             appeal_value = float(request.appeals.get(class_name, 0) or 0)
-            original_value = float(result_data["certified_value"])
+            original_value = float(result_data["certified_value"])  # after exemption adj
 
             logger.info("  - Processing Appeals for Class '%s':", class_name)
             logger.info("    - Appeal Value from Request: %s", f"${appeal_value:,.2f}")
             logger.info("    - Value Before Appeal: %s", f"${original_value:,.2f}")
+
+            tier_rows_after_exemption = result_data.get("tier_breakdown") or []
 
             if original_value > 0 and appeal_value > 0:
                 appeal_deduction = min(appeal_value * 0.5, original_value)
@@ -819,16 +907,26 @@ def calculate_revenue_forecast(request: ForecastRequest) -> Any:
                 reduction_factor = adjusted_value / original_value if original_value > 0 else 0.0
                 adjusted_revenue = float(result_data["certified_revenue"]) * reduction_factor
 
-                logger.info("    - Appeal Deduction (50%% of appeal, capped at value): %s", f"${appeal_deduction:,.2f}")
+                logger.info(
+                    "    - Appeal Deduction (50%% of appeal, capped at value): %s",
+                    f"${appeal_deduction:,.2f}",
+                )
                 logger.info("    - Reduction Factor: %.4f", reduction_factor)
                 logger.info("    - Final Adjusted Value: %s", f"${adjusted_value:,.2f}")
                 logger.info("    - Final Adjusted Revenue: %s", f"${adjusted_revenue:,.2f}")
+
+                # Scale tier revenues by the same reduction factor so tiers sum to the class revenue
+                appeal_adjusted_tiers = [
+                    {**tr, "revenue": float(tr.get("revenue", 0.0)) * float(reduction_factor)}
+                    for tr in tier_rows_after_exemption
+                ]
 
                 adjusted_results[class_name] = {
                     "certified_value": adjusted_value,
                     "certified_revenue": adjusted_revenue,
                     "parcel_count": int(result_data["parcel_count"]),
                     "exemption_count": int(result_data["exemption_count"]),
+                    "tier_breakdown": appeal_adjusted_tiers,
                 }
             else:
                 logger.info("    - No appeal deduction applied (value or appeal is zero).")
@@ -852,6 +950,7 @@ def calculate_revenue_forecast(request: ForecastRequest) -> Any:
                 "certified_revenue": total_revenue,
                 "parcel_count": total_parcels,
                 "exemption_count": total_exemptions,
+                "tier_breakdown": None,
             },
             "comparison_data": FY_COMPARISON_DATA,
         }
@@ -859,7 +958,10 @@ def calculate_revenue_forecast(request: ForecastRequest) -> Any:
         return response_data
     except Exception as e:
         logger.error("Revenue calculation failed: %s", e, exc_info=True)
-        raise HTTPException(status_code=500, detail=f"An error occurred during revenue calculation: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"An error occurred during revenue calculation: {str(e)}",
+        )
 
 
 # ---- Misc --------------------------------------------------------------------
@@ -899,4 +1001,3 @@ def log_frontend_error(payload: FrontendErrorPayload, request: Request) -> dict[
         payload.stack,
     )
     return {"status": "ok"}
-

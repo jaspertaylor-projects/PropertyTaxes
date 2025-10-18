@@ -1,5 +1,5 @@
 // frontend/src/components/RevenueSummary.jsx
-// Purpose: Displays the calculated revenue forecast in a table.
+// Purpose: Displays the calculated revenue forecast in a table, including tier-level revenue breakdown per class.
 // Imports From: ../theme.js, ./Spinner.jsx
 // Exported To: ../pages/PolicyEditor.jsx
 import React from 'react';
@@ -17,10 +17,10 @@ export default function RevenueSummary({ results, appeals, comparisonYear, onCom
       currency: 'USD',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(value);
+    }).format(value || 0);
 
   const formatNumber = (value) =>
-    new Intl.NumberFormat('en-US').format(value);
+    new Intl.NumberFormat('en-US').format(value || 0);
 
   const styles = {
     container: {
@@ -87,6 +87,15 @@ export default function RevenueSummary({ results, appeals, comparisonYear, onCom
       textAlign: 'left',
       fontWeight: 'bold',
     },
+    tierRow: {
+      backgroundColor: '#fafafa',
+    },
+    tierLabelCell: {
+      paddingLeft: '28px',
+      color: theme.textSecondary,
+      fontStyle: 'italic',
+      textAlign: 'left',
+    },
     tfoot: {
       fontWeight: 'bold',
       backgroundColor: theme.background,
@@ -125,12 +134,12 @@ export default function RevenueSummary({ results, appeals, comparisonYear, onCom
   const renderRow = (className, data, totalRow = false) => {
     const comparisonRow = comparison ? (totalRow ? comparison.totals : comparison[className]) : null;
     const appealValue = totalRow ? 
-      Object.values(appeals || {}).reduce((sum, val) => sum + val, 0) :
+      Object.values(appeals || {}).reduce((sum, val) => sum + (val || 0), 0) :
       (appeals && appeals[className]) || 0;
     const exemptionCount = data.exemption_count ?? 0;
 
     return (
-      <tr key={className}>
+      <tr key={className} className="revenue-summary-class-row">
         <td style={{...styles.td, ...styles.tdLeft}}>{className}</td>
         <td style={styles.td}>{formatNumber(data.parcel_count)}</td>
         <td style={{...styles.td, color: theme.textSecondary}}>{formatNumber(exemptionCount)}</td>
@@ -143,18 +152,36 @@ export default function RevenueSummary({ results, appeals, comparisonYear, onCom
     );
   };
 
+  const renderTierRows = (className, data) => {
+    const tiers = data.tier_breakdown || [];
+    if (!tiers.length) return null;
+
+    return tiers.map((tier, idx) => (
+      <tr key={`${className}-tier-${idx}`} className="revenue-summary-tier-row" style={styles.tierRow}>
+        <td style={{...styles.td, ...styles.tierLabelCell}}>↳ {tier.label}</td>
+        <td style={styles.td}></td>
+        <td style={styles.td}></td>
+        <td style={styles.td}></td>
+        <td style={styles.td}></td>
+        {comparison && <td style={styles.td}></td>}
+        <td style={{...styles.td, fontWeight: 600}}>{formatCurrency(tier.revenue)}</td>
+        {comparison && <td style={styles.td}></td>}
+      </tr>
+    ));
+  };
+
   return (
-    <div style={styles.container}>
+    <div style={styles.container} className="revenue-summary-container">
       {isLoading && (
         <div style={styles.loadingOverlay}>
           <Spinner size="48px" />
         </div>
       )}
-      <div style={styles.contentWrapper}>
-        <div style={styles.header}>
+      <div style={styles.contentWrapper} className="revenue-summary-content-wrapper">
+        <div style={styles.header} className="revenue-summary-header">
           <h2 style={styles.title}>Revenue Forecast {comparison ? `vs. ${comparisonYear}` : ''}</h2>
-          <div style={styles.controls}>
-            <div style={styles.toggleContainer}>
+          <div style={styles.controls} className="revenue-summary-controls">
+            <div style={styles.toggleContainer} className="revenue-summary-toggle-container">
               <input
                 type="checkbox"
                 id="exemption-toggle"
@@ -166,7 +193,7 @@ export default function RevenueSummary({ results, appeals, comparisonYear, onCom
                 Apply Exemptions
               </label>
             </div>
-            <div>
+            <div className="revenue-summary-compare-select">
               <label htmlFor="comparison-year" style={styles.selectLabel}>Compare To: </label>
               <select 
                 id="comparison-year"
@@ -181,7 +208,7 @@ export default function RevenueSummary({ results, appeals, comparisonYear, onCom
             </div>
           </div>
         </div>
-        <table style={styles.table}>
+        <table style={styles.table} className="revenue-summary-table">
           <thead>
             <tr>
               <th style={{...styles.th, textAlign: 'left'}}>Tax Class</th>
@@ -195,9 +222,14 @@ export default function RevenueSummary({ results, appeals, comparisonYear, onCom
             </tr>
           </thead>
           <tbody>
-            {sortedClasses.map((className) => renderRow(className, results_by_class[className]))}
+            {sortedClasses.map((className) => (
+              <React.Fragment key={`group-${className}`}>
+                {renderRow(className, results_by_class[className])}
+                {renderTierRows(className, results_by_class[className])}
+              </React.Fragment>
+            ))}
           </tbody>
-          <tfoot style={styles.tfoot}>
+          <tfoot style={styles.tfoot} className="revenue-summary-tfoot">
             {renderRow('Total', totals, true)}
           </tfoot>
         </table>
