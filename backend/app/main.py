@@ -122,7 +122,7 @@ DATA_DEFINITIONS = {
         ],
     },
     "fullownr25": {
-        "file_name": "fullownr25.txt",
+        "file_name": "fulllownr25.txt",
         "colspecs": [
             (0, 1),
             (1, 2),
@@ -278,7 +278,7 @@ def configure_logging() -> None:
         "formatters": {
             "default": {
                 "format": "%(asctime)s | %(levelname)s | %(name)s | %(message)s",
-                "datefmt": "%Y-%m-%dT%H:%M:%S%z",
+                "datefmt": "\n%Y-%m-%dT%H:%M:%S%z",
             }
         },
         "handlers": {
@@ -361,25 +361,25 @@ TAX_CLASS_MAPPING = {
     12: "LONG TERM RENTAL",
 }
 
-# FY 2025 Rates from Final Budget Handout
+# FY 2026 Rates from Final Budget Handout
 DEFAULT_POLICY = {
-    "TIME SHARE": {"code": 0, "rate": 14.60, "tiers": []},
+    "TIME SHARE": {"code": 0, "rate": 14.70, "tiers": []},
     "NON-OWNER-OCCUPIED": {
         "code": 1,
         "rate": None,
         "tiers": [
             {"up_to": 1_000_000, "rate": 5.87},
-            {"up_to": 3_000_000, "rate": 8.50},
-            {"up_to": None, "rate": 14.00},
+            {"up_to": 3_000_000, "rate": 8.60},
+            {"up_to": None, "rate": 17.00},
         ],
     },
     "COMMERCIALIZED RESIDENTIAL": {
         "code": 10,
         "rate": None,
         "tiers": [
-            {"up_to": 1_000_000, "rate": 4.00},
-            {"up_to": 3_000_000, "rate": 5.00},
-            {"up_to": None, "rate": 8.00},
+            {"up_to": 1_000_000, "rate": 2.00},
+            {"up_to": 3_000_000, "rate": 3.00},
+            {"up_to": None, "rate": 10.00},
         ],
     },
     "TVR-STRH": {
@@ -387,17 +387,17 @@ DEFAULT_POLICY = {
         "rate": None,
         "tiers": [
             {"up_to": 1_000_000, "rate": 12.50},
-            {"up_to": 3_000_000, "rate": 13.50},
-            {"up_to": None, "rate": 15.00},
+            {"up_to": 3_000_000, "rate": 14.00},
+            {"up_to": None, "rate": 15.55},
         ],
     },
     "LONG TERM RENTAL": {
         "code": 12,
         "rate": None,
         "tiers": [
-            {"up_to": 1_300_000, "rate": 3.00},
+            {"up_to": 1_300_000, "rate": 2.95},
             {"up_to": 3_000_000, "rate": 5.00},
-            {"up_to": None, "rate": 8.00},
+            {"up_to": None, "rate": 8.50},
         ],
     },
     "APARTMENT": {"code": 2, "rate": 3.50, "tiers": []},
@@ -405,14 +405,14 @@ DEFAULT_POLICY = {
     "INDUSTRIAL": {"code": 4, "rate": 7.05, "tiers": []},
     "AGRICULTURAL": {"code": 5, "rate": 5.74, "tiers": []},
     "CONSERVATION": {"code": 6, "rate": 6.43, "tiers": []},
-    "HOTEL / RESORT": {"code": 7, "rate": 11.75, "tiers": []},
+    "HOTEL / RESORT": {"code": 7, "rate": 11.80, "tiers": []},
     "OWNER-OCCUPIED": {
         "code": 9,
         "rate": None,
         "tiers": [
-            {"up_to": 1_300_000, "rate": 1.80},
-            {"up_to": 4_500_000, "rate": 2.00},
-            {"up_to": None, "rate": 3.25},
+            {"up_to": 1_300_000, "rate": 1.65},
+            {"up_to": 4_500_000, "rate": 1.80},
+            {"up_to": None, "rate": 5.75},
         ],
     },
 }
@@ -644,7 +644,7 @@ def get_multiple_class_flag_counts_lndar() -> Any:
 # ---- Endpoints: Policy & Appeals ---------------------------------------------
 @app.get("/api/policy/default")
 def get_default_policy() -> dict[str, Any]:
-    """Returns the default tax policy based on FY 2025 rates."""
+    """Returns the default tax policy based on FY 2026 rates."""
     return DEFAULT_POLICY
 
 
