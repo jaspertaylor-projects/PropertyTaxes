@@ -22,6 +22,7 @@ export default function PolicyEditor() {
   const { policy, defaultPolicy, appeals, results, status, error, tierCounts } = useSelector((state) => state.forecast) || {};
   const [comparisonYear, setComparisonYear] = useState('None');
   const [applyExemptionAverage, setApplyExemptionAverage] = useState(false);
+  const [showTierBreakdown, setShowTierBreakdown] = useState(true);
   const isLoading = status === 'loading';
 
   useEffect(() => {
@@ -44,7 +45,6 @@ export default function PolicyEditor() {
 
   const handleExemptionChange = (isChecked) => {
     setApplyExemptionAverage(isChecked);
-    // Automatically recalculate if results are already being displayed
     if (policy && appeals && results) {
       dispatch(calculateForecast({ policy, appeals, applyExemptionAverage: isChecked }));
       dispatch(fetchTierParcelCounts({ policy }));
@@ -74,7 +74,7 @@ export default function PolicyEditor() {
       display: 'flex',
       justifyContent: 'flex-end',
       padding: '0.5rem 2rem',
-      minHeight: '50px', // Reserve space to avoid layout shift
+      minHeight: '50px',
       alignItems: 'center',
     },
     restoreButton: {
@@ -135,7 +135,7 @@ export default function PolicyEditor() {
       justifyContent: 'center',
       alignItems: 'center',
       gap: '1rem',
-      minHeight: '48px', // Reserve space to prevent layout shift
+      minHeight: '48px',
     },
     calculateButton: {
       padding: '12px 24px',
@@ -234,6 +234,8 @@ export default function PolicyEditor() {
           onExemptionChange={handleExemptionChange}
           isLoading={isLoading}
           tierCounts={tierCounts}
+          showTierBreakdown={showTierBreakdown}
+          onTierToggle={setShowTierBreakdown}
         />
       </main>
     </div>

@@ -1,12 +1,12 @@
 // frontend/src/components/RevenueSummary.jsx
-// Purpose: Displays the calculated revenue forecast in a table, including tier-level revenue breakdown per class and optional tier parcel counts if policy matches FY 2026 tiers.
+// Purpose: Displays the calculated revenue forecast in a table, including tier-level revenue breakdown per class and optional tier parcel counts if policy matches FY 2026 tiers. Also allows toggling of exemptions and tier breakdown visibility.
 // Imports From: ../theme.js, ./Spinner.jsx
 // Exported To: ../pages/PolicyEditor.jsx
 import React from 'react';
 import theme from '../theme.js';
 import Spinner from './Spinner.jsx';
 
-export default function RevenueSummary({ results, appeals, comparisonYear, onComparisonYearChange, applyExemptionAverage, onExemptionChange, isLoading, tierCounts }) {
+export default function RevenueSummary({ results, appeals, comparisonYear, onComparisonYearChange, applyExemptionAverage, onExemptionChange, isLoading, tierCounts, showTierBreakdown, onTierToggle }) {
   if (!results) {
     return null;
   }
@@ -61,6 +61,12 @@ export default function RevenueSummary({ results, appeals, comparisonYear, onCom
       display: 'flex',
       alignItems: 'center',
       gap: '1.5rem',
+      flexWrap: 'wrap',
+    },
+    controlGroup: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '1rem',
       flexWrap: 'wrap',
     },
     table: {
@@ -129,7 +135,8 @@ export default function RevenueSummary({ results, appeals, comparisonYear, onCom
   const { results_by_class, totals, comparison_data } = results;
   const sortedClasses = Object.keys(results_by_class).sort();
   const comparison = comparisonYear !== 'None' && comparison_data ? comparison_data[comparisonYear] : null;
-  const showTierParcelCounts = Boolean(tierCounts && tierCounts.allowed && tierCounts.classes);
+  const showTierParcelCountsBase = Boolean(tierCounts && tierCounts.allowed && tierCounts.classes);
+  const showTierParcelCounts = showTierParcelCountsBase && !!showTierBreakdown;
 
   const renderRow = (className, data, totalRow = false) => {
     const comparisonRow = comparison ? (totalRow ? comparison.totals : comparison[className]) : null;
@@ -163,6 +170,7 @@ export default function RevenueSummary({ results, appeals, comparisonYear, onCom
   };
 
   const renderTierRows = (className, data) => {
+    if (!showTierBreakdown) return null;
     const tiers = data.tier_breakdown || [];
     if (!tiers.length) return null;
 
@@ -201,17 +209,31 @@ export default function RevenueSummary({ results, appeals, comparisonYear, onCom
         <div style={styles.header} className="revenue-summary-header">
           <h2 style={styles.title}>Revenue Forecast {comparison ? `vs. ${comparisonYear}` : ''}</h2>
           <div style={styles.controls} className="revenue-summary-controls">
-            <div style={styles.toggleContainer} className="revenue-summary-toggle-container">
-              <input
-                type="checkbox"
-                id="exemption-toggle"
-                style={styles.toggleSwitch}
-                checked={applyExemptionAverage}
-                onChange={(e) => onExemptionChange(e.target.checked)}
-              />
-              <label htmlFor="exemption-toggle" style={styles.toggleLabel}>
-                Apply Exemptions
-              </label>
+            <div style={styles.controlGroup} className="revenue-summary-control-group">
+              <div style={styles.toggleContainer} className="revenue-summary-toggle-container">
+                <input
+                  type="checkbox"
+                  id="exemption-toggle"
+                  style={styles.toggleSwitch}
+                  checked={applyExemptionAverage}
+                  onChange={(e) => onExemptionChange(e.target.checked)}
+                />
+                <label htmlFor="exemption-toggle" style={styles.toggleLabel}>
+                  Apply Exemptions
+                </label>
+              </div>
+              <div style={styles.toggleContainer} className="revenue-summary-toggle-container">
+                <input
+                  type="checkbox"
+                  id="tier-toggle"
+                  style={styles.toggleSwitch}
+                  checked={!!showTierBreakdown}
+                  onChange={(e) => onTierToggle(e.target.checked)}
+                />
+                <label htmlFor="tier-toggle" style={styles.toggleLabel}>
+                  Show Tier Breakdown
+                </label>
+              </div>
             </div>
             <div className="revenue-summary-compare-select">
               <label htmlFor="comparison-year" style={styles.selectLabel}>
