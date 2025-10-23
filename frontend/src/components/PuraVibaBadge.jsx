@@ -1,17 +1,14 @@
 // frontend/src/components/PuraVibaBadge.jsx
-// Purpose: Floating brand badge pinned to the lower-left linking to PuraViba with subtle styling.
+// Purpose: Brand badge that links to PuraViba. Designed to be placed inside a footer bar so it does not overlap content.
 // Imports From: None
-// Exported To: ../App.jsx
+// Exported To: ../components/FooterBadgeBar.jsx, ../App.jsx
 import React from 'react';
 
 export default function PuraVibaBadge() {
   const [isHovered, setIsHovered] = React.useState(false);
 
   const containerStyle = {
-    position: 'fixed',
-    bottom: '16px',
-    left: '16px',
-    zIndex: 1000,
+    display: 'inline-block',
   };
 
   const linkStyle = {
