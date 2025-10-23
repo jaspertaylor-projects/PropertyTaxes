@@ -59,6 +59,7 @@ export default function FooterBadgeBar() {
     justifyContent: 'flex-start',
     gap: '8px',
     padding: '4px 8px',
+    paddingLeft: '4px',
     paddingBottom: 'calc(4px + env(safe-area-inset-bottom))',
     minHeight: '20px',
   };
