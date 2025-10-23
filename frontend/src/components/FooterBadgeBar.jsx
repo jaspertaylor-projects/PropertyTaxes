@@ -1,12 +1,11 @@
 // frontend/src/components/FooterBadgeBar.jsx
-// Purpose: Fixed, full-width footer bar hosting the PuraViba badge with a transparent overlay; reserves space so it never overlaps page content.
-// Imports From: ../theme.js, ./PuraVibaBadge.jsx
+// Purpose: Fixed, full-width footer bar hosting the PuraViba badge with a transparent overlay; exports a reserved space constant used by the page spacer.
+// Imports From: ./PuraVibaBadge.jsx
 // Exported To: ../App.jsx
 import React from 'react';
-import theme from '../theme.js';
 import PuraVibaBadge from './PuraVibaBadge.jsx';
 
-export const BADGE_RESERVED_SPACE_CSS = 'calc(28px + env(safe-area-inset-bottom))';
+export const BADGE_RESERVED_SPACE_CSS = 'calc(36px + env(safe-area-inset-bottom))';
 
 export default function FooterBadgeBar() {
   const containerStyle = {
