@@ -1,12 +1,11 @@
 // frontend/src/components/PuraVibaBadge.jsx
-// Purpose: Brand badge for PuraViba; larger clickable area with text revealed only when hovering the PNG.
+// Purpose: Brand badge for PuraViba; larger clickable area with text revealed on hover.
 // Imports From: None
 // Exported To: ../components/FooterBadgeBar.jsx, ../App.jsx
 import React from 'react';
 
 export default function PuraVibaBadge() {
   const [isBadgeHovered, setIsBadgeHovered] = React.useState(false);
-  const [isImageHovered, setIsImageHovered] = React.useState(false);
 
   const containerStyle = {
     display: 'inline-block',
@@ -41,7 +40,7 @@ export default function PuraVibaBadge() {
     lineHeight: 1,
     opacity: 0.9,
     whiteSpace: 'nowrap',
-    display: isImageHovered ? 'inline' : 'none',
+    display: isBadgeHovered ? 'inline' : 'none',
   };
 
   return (
@@ -57,8 +56,6 @@ export default function PuraVibaBadge() {
           src="/puraviba.png"
           alt="PuraViba logo"
           style={imageStyle}
-          onMouseEnter={() => setIsImageHovered(true)}
-          onMouseLeave={() => setIsImageHovered(false)}
         />
         <span className="pura-viba-badge-text" style={textStyle}>
           Made by PuraViba IDE
