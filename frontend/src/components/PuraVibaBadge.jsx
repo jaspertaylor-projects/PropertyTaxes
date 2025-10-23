@@ -1,11 +1,12 @@
 // frontend/src/components/PuraVibaBadge.jsx
-// Purpose: Brand badge that links to PuraViba; sized to fit inside the footer bar without overlapping content.
+// Purpose: Brand badge that links to PuraViba; larger clickable area with text revealed only when hovering the PNG.
 // Imports From: None
 // Exported To: ../components/FooterBadgeBar.jsx, ../App.jsx
 import React from 'react';
 
 export default function PuraVibaBadge() {
-  const [isHovered, setIsHovered] = React.useState(false);
+  const [isLinkHovered, setIsLinkHovered] = React.useState(false);
+  const [isImageHovered, setIsImageHovered] = React.useState(false);
 
   const containerStyle = {
     display: 'inline-block',
@@ -14,15 +15,15 @@ export default function PuraVibaBadge() {
   const linkStyle = {
     display: 'inline-flex',
     alignItems: 'center',
-    gap: '6px',
-    padding: '2px 6px 2px 2px',
+    gap: '8px',
+    padding: '6px 10px 6px 6px',
     borderRadius: '9999px',
     textDecoration: 'none',
-    backgroundColor: isHovered ? 'rgba(0,0,0,0.08)' : 'rgba(0,0,0,0.04)',
-    border: '1px solid rgba(0,0,0,0.12)',
+    backgroundColor: isLinkHovered ? 'rgba(0,0,0,0.08)' : 'rgba(0,0,0,0.04)',
+    border: 'none',
     color: '#222',
     boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
-    transform: isHovered ? 'translateY(-1px)' : 'translateY(0)',
+    transform: isLinkHovered ? 'translateY(-1px)' : 'translateY(0)',
     transition: 'background-color 160ms ease, transform 160ms ease, box-shadow 160ms ease',
     cursor: 'pointer',
     userSelect: 'none',
@@ -30,17 +31,18 @@ export default function PuraVibaBadge() {
   };
 
   const imageStyle = {
-    width: '12px',
-    height: '12px',
-    borderRadius: '4px',
+    width: '16px',
+    height: '16px',
+    borderRadius: '6px',
     display: 'block',
   };
 
   const textStyle = {
-    fontSize: '10px',
+    fontSize: '11px',
     lineHeight: 1,
-    opacity: 0.85,
+    opacity: 0.9,
     whiteSpace: 'nowrap',
+    display: isImageHovered ? 'inline' : 'none',
   };
 
   return (
@@ -51,8 +53,8 @@ export default function PuraVibaBadge() {
         target="_blank"
         rel="noopener noreferrer"
         style={linkStyle}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        onMouseEnter={() => setIsLinkHovered(true)}
+        onMouseLeave={() => setIsLinkHovered(false)}
         aria-label="Visit PuraViba"
       >
         <img
@@ -60,6 +62,8 @@ export default function PuraVibaBadge() {
           src="/puraviba.png"
           alt="PuraViba logo"
           style={imageStyle}
+          onMouseEnter={() => setIsImageHovered(true)}
+          onMouseLeave={() => setIsImageHovered(false)}
         />
         <span className="pura-viba-badge-text" style={textStyle}>
           Made by PuraViba IDE
