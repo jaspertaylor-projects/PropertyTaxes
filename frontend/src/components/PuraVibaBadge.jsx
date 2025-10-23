@@ -1,5 +1,5 @@
 // frontend/src/components/PuraVibaBadge.jsx
-// Purpose: Brand badge that links to PuraViba. Designed to be placed inside a footer bar so it does not overlap content.
+// Purpose: Brand badge that links to PuraViba; sized to fit inside the footer bar without overlapping content.
 // Imports From: None
 // Exported To: ../components/FooterBadgeBar.jsx, ../App.jsx
 import React from 'react';
@@ -14,14 +14,14 @@ export default function PuraVibaBadge() {
   const linkStyle = {
     display: 'inline-flex',
     alignItems: 'center',
-    gap: '8px',
-    padding: '6px 10px 6px 6px',
+    gap: '6px',
+    padding: '2px 6px 2px 2px',
     borderRadius: '9999px',
     textDecoration: 'none',
     backgroundColor: isHovered ? 'rgba(0,0,0,0.08)' : 'rgba(0,0,0,0.04)',
     border: '1px solid rgba(0,0,0,0.12)',
     color: '#222',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+    boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
     transform: isHovered ? 'translateY(-1px)' : 'translateY(0)',
     transition: 'background-color 160ms ease, transform 160ms ease, box-shadow 160ms ease',
     cursor: 'pointer',
@@ -30,14 +30,14 @@ export default function PuraVibaBadge() {
   };
 
   const imageStyle = {
-    width: '24px',
-    height: '24px',
-    borderRadius: '6px',
+    width: '12px',
+    height: '12px',
+    borderRadius: '4px',
     display: 'block',
   };
 
   const textStyle = {
-    fontSize: '12px',
+    fontSize: '10px',
     lineHeight: 1,
     opacity: 0.85,
     whiteSpace: 'nowrap',
