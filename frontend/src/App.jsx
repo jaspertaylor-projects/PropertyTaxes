@@ -1,5 +1,5 @@
 // frontend/src/App.jsx
-// Purpose: Main application layout and routing. Ensures page content reserves space above the fixed footer badge bar.
+// Purpose: Main application layout and routing. Ensures page content scrolls independently and reserves space for the fixed footer.
 // Imports From: ./App.css, ./theme.js, ./components/Navbar.jsx, ./pages/PolicyEditor.jsx, ./pages/AppealsEditor.jsx, ./components/FooterBadgeBar.jsx
 // Exported To: ./main.jsx
 import React from 'react';
@@ -16,12 +16,16 @@ export default function App() {
     appContainer: {
       backgroundColor: theme.background,
       color: theme.textPrimary,
-      minHeight: '100vh',
+      height: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
     },
     pageContent: {
       padding: '2rem',
-      paddingBottom: `calc(2rem + ${BADGE_RESERVED_SPACE_CSS})`,
       boxSizing: 'border-box',
+      flex: '1 1 auto',
+      overflowY: 'auto',
+      paddingBottom: 'calc(2rem + var(--footer-badge-reserved-space, ' + BADGE_RESERVED_SPACE_CSS + '))',
     },
   };
 
