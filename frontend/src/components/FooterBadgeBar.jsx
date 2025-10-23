@@ -1,5 +1,5 @@
 // frontend/src/components/FooterBadgeBar.jsx
-// Purpose: Fixed, full-width footer bar that hosts the PuraViba badge; reserves space so it never overlaps page content.
+// Purpose: Fixed, full-width footer bar hosting the PuraViba badge with a transparent overlay; reserves space so it never overlaps page content.
 // Imports From: ../theme.js, ./PuraVibaBadge.jsx
 // Exported To: ../App.jsx
 import React from 'react';
@@ -15,9 +15,9 @@ export default function FooterBadgeBar() {
     right: 0,
     bottom: 0,
     zIndex: 900,
-    backgroundColor: theme.background,
-    borderTop: `1px solid ${theme.border}`,
-    boxShadow: `0 -2px 12px ${theme.shadow}`,
+    backgroundColor: 'transparent',
+    borderTop: 'none',
+    boxShadow: 'none',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'flex-start',
