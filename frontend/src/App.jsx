@@ -25,7 +25,7 @@ export default function App() {
       boxSizing: 'border-box',
       flex: '1 1 auto',
       overflowY: 'auto',
-      paddingBottom: `calc(2rem + ${BADGE_RESERVED_SPACE_CSS})`,
+      paddingBottom: 'calc(2rem + var(--footer-badge-reserved-space, ' + BADGE_RESERVED_SPACE_CSS + '))',
     },
   };
 
