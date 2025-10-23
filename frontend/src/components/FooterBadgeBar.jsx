@@ -1,5 +1,5 @@
 // frontend/src/components/FooterBadgeBar.jsx
-// Purpose: Fixed, full-width footer bar hosting the PuraViba badge with a transparent overlay; exports a reserved space constant used by the page spacer.
+// Purpose: Fixed, full-width footer bar hosting the PuraViba badge with a transparent overlay; exports a reserved space constant used by the main app layout.
 // Imports From: ./PuraVibaBadge.jsx
 // Exported To: ../App.jsx
 import React from 'react';

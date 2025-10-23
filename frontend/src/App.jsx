@@ -1,6 +1,6 @@
 // frontend/src/App.jsx
-// Purpose: Main application layout and routing. Ensures page content reserves space above the fixed footer badge bar.
-// Imports From: ./App.css, ./theme.js, ./components/Navbar.jsx, ./pages/PolicyEditor.jsx, ./pages/AppealsEditor.jsx, ./components/FooterBadgeBar.jsx, ./components/FooterSafeAreaSpacer.jsx
+// Purpose: Main application layout and routing. Ensures page content scrolls independently and reserves space for the fixed footer.
+// Imports From: ./App.css, ./theme.js, ./components/Navbar.jsx, ./pages/PolicyEditor.jsx, ./pages/AppealsEditor.jsx, ./components/FooterBadgeBar.jsx
 // Exported To: ./main.jsx
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
@@ -9,19 +9,23 @@ import theme from './theme.js';
 import Navbar from './components/Navbar.jsx';
 import PolicyEditor from './pages/PolicyEditor.jsx';
 import AppealsEditor from './pages/AppealsEditor.jsx';
-import FooterBadgeBar from './components/FooterBadgeBar.jsx';
-import FooterSafeAreaSpacer from './components/FooterSafeAreaSpacer.jsx';
+import FooterBadgeBar, { BADGE_RESERVED_SPACE_CSS } from './components/FooterBadgeBar.jsx';
 
 export default function App() {
   const styles = {
     appContainer: {
       backgroundColor: theme.background,
       color: theme.textPrimary,
-      minHeight: '100vh',
+      height: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
     },
     pageContent: {
       padding: '2rem',
       boxSizing: 'border-box',
+      flex: '1 1 auto',
+      overflowY: 'auto',
+      paddingBottom: `calc(2rem + ${BADGE_RESERVED_SPACE_CSS})`,
     },
   };
 
@@ -35,7 +39,6 @@ export default function App() {
           <Route path="/appeals-editor" element={<AppealsEditor />} />
         </Routes>
       </div>
-      <FooterSafeAreaSpacer />
       <FooterBadgeBar />
     </div>
   );
