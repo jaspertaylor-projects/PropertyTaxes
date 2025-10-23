@@ -1,5 +1,5 @@
 // frontend/src/App.jsx
-// Purpose: Main application layout and routing. Sets Policy Editor as the home page and wires navigation.
+// Purpose: Main application layout and routing. Ensures page content reserves space above the fixed PuraViba badge.
 // Imports From: ./App.css, ./theme.js, ./components/Navbar.jsx, ./pages/PolicyEditor.jsx, ./pages/AppealsEditor.jsx, ./components/PuraVibaBadge.jsx
 // Exported To: ./main.jsx
 import React from 'react';
@@ -12,6 +12,8 @@ import AppealsEditor from './pages/AppealsEditor.jsx';
 import PuraVibaBadge from './components/PuraVibaBadge.jsx';
 
 export default function App() {
+  const BADGE_RESERVED_SPACE = 96; // px; ensures content never sits behind the fixed badge
+
   const styles = {
     appContainer: {
       backgroundColor: theme.background,
@@ -20,6 +22,7 @@ export default function App() {
     },
     pageContent: {
       padding: '2rem',
+      paddingBottom: `calc(2rem + ${BADGE_RESERVED_SPACE}px)`,
       boxSizing: 'border-box',
     },
   };
