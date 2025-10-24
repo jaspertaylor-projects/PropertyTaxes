@@ -11,6 +11,8 @@ import PolicyEditor from './pages/PolicyEditor.jsx';
 import AppealsEditor from './pages/AppealsEditor.jsx';
 import FooterBadgeBar, { BADGE_RESERVED_SPACE_CSS } from './components/FooterBadgeBar.jsx';
 
+const PAYMENT_RECIEVED = true;
+
 export default function App() {
   const styles = {
     appContainer: {
@@ -27,7 +29,24 @@ export default function App() {
       overflowY: 'auto',
       paddingBottom: 'calc(2rem + var(--footer-badge-reserved-space, ' + BADGE_RESERVED_SPACE_CSS + '))',
     },
+    paymentMessageContainer: {
+      backgroundColor: theme.background,
+      color: theme.textPrimary,
+      height: '100vh',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      fontSize: '2rem',
+    },
   };
+
+  if (!PAYMENT_RECIEVED) {
+    return (
+      <div style={styles.paymentMessageContainer}>
+        <h1>Awaiting Payment</h1>
+      </div>
+    );
+  }
 
   return (
     <div className="app-container" style={styles.appContainer}>
